@@ -99,6 +99,51 @@ class DiagnosticEngine:
         return DiagnosticSeverity.INFO
 
     @staticmethod
+    def _gpu_component(check_name: str) -> str:
+        """Return the GPU component associated with a health check."""
+        if not check_name.startswith("gpu."):
+            return "gpu"
+
+        parts = check_name.split(".")
+
+        # Per-device checks use:
+        # gpu.<device_id>.temperature
+        # gpu.<device_id>.memory
+        if len(parts) >= 3 and parts[-1] in {"temperature", "memory"}:
+            return ".".join(parts[:-1])
+
+        # Preserve backend/device-specific monitoring error identifiers.
+        return check_name
+
+    @staticmethod
+    def _gpu_metric(check_name: str) -> tuple[str, str] | None:
+        """Extract the GPU device identifier and metric from a check name."""
+
+        # Legacy compatibility: single-GPU check names.
+        if check_name == "gpu.temperature":
+            return "", "temperature"
+
+        if check_name == "gpu.memory":
+            return "", "memory"
+
+        if not check_name.startswith("gpu."):
+            return None
+
+        # Multi-GPU check names:
+        # gpu.<device_id>.temperature
+        # gpu.<device_id>.memory
+        for metric in ("temperature", "memory"):
+            suffix = f".{metric}"
+
+            if check_name.endswith(suffix):
+                device_id = check_name[len("gpu.") : -len(suffix)]
+
+                if device_id:
+                    return device_id, metric
+
+        return None
+
+    @staticmethod
     def _diagnose_check(
         check: HealthCheck,
     ) -> DiagnosticFinding | None:
@@ -123,25 +168,32 @@ class DiagnosticEngine:
                     "Check GPU detection, driver status, sensor access "
                     "and monitoring backend availability."
                 )
+                component = DiagnosticEngine._gpu_component(check.name)
+
             elif check.name.startswith("numa"):
                 recommendation = (
                     "Check NUMA topology detection, system permissions "
                     "and the availability of NUMA information."
                 )
+                component = check.name
+
             elif check.name == "resources":
                 recommendation = (
                     "Check the resource monitoring backend and verify "
                     "that CPU and memory information can be read."
                 )
+                component = check.name
+
             else:
                 recommendation = (
                     "Verify the monitoring source and measurement "
                     "validity before drawing conclusions."
                 )
+                component = check.name
 
             return DiagnosticFinding(
                 rule_id="MONITORING_DATA_INVALID",
-                component=check.name,
+                component=component,
                 severity=DiagnosticSeverity.WARNING,
                 title=(
                     f"Monitoring data unavailable or invalid: {check.name}"
@@ -212,44 +264,78 @@ class DiagnosticEngine:
                 **common,
             )
 
-        # GPU temperature.
-        if check.name == "gpu.temperature":
-            return DiagnosticFinding(
-                rule_id="GPU_TEMPERATURE",
-                component="gpu",
-                title=(
-                    "Critical GPU temperature"
-                    if critical
-                    else "High GPU temperature"
-                ),
-                explanation=(
-                    "The GPU temperature has reached a critical threshold."
-                    if critical
-                    else "The GPU temperature is elevated."
-                ),
-                recommendation=(
-                    "Check GPU cooling, fan operation, airflow and "
-                    "dust accumulation. Reduce GPU load if the "
-                    "temperature remains critical."
-                ),
-                **common,
-            )
+        # Per-device GPU temperature and memory.
+        gpu_metric = DiagnosticEngine._gpu_metric(check.name)
 
-        # GPU memory.
-        if check.name == "gpu.memory":
-            return DiagnosticFinding(
-                rule_id="GPU_MEMORY_PRESSURE",
-                component="gpu",
-                title=(
-                    "Critical GPU memory pressure"
-                    if critical
-                    else "High GPU memory utilization"
-                ),
-                explanation=(
+        if gpu_metric is not None:
+            device_id, metric = gpu_metric
+
+            component = f"gpu.{device_id}" if device_id else "gpu"
+            device_label = f"GPU {device_id}" if device_id else "GPU"
+
+            if metric == "temperature":
+                explanation = (
+                    f"{check.message} (device {device_id})."
+                    if device_id
+                    else (
+                        "GPU temperature has reached a critical threshold."
+                        if critical
+                        else "GPU temperature is elevated."
+                    )
+                )
+
+                return DiagnosticFinding(
+                    rule_id="GPU_TEMPERATURE",
+                    component=component,
+                    title=(
+                        f"Critical GPU temperature: {device_id}"
+                        if critical and device_id
+                        else (
+                            "Critical GPU temperature"
+                            if critical
+                            else (
+                                f"High GPU temperature: {device_id}"
+                                if device_id
+                                else "High GPU temperature"
+                            )
+                        )
+                    ),
+                    explanation=explanation,
+                    recommendation=(
+                        "Check GPU cooling, fan operation, airflow and "
+                        "dust accumulation. Reduce GPU load if the "
+                        "temperature remains critical."
+                    ),
+                    **common,
+                )
+
+            explanation = (
+                f"{check.message} (device {device_id})."
+                if device_id
+                else (
                     "GPU memory utilization has reached a critical level."
                     if critical
                     else "GPU memory utilization is elevated."
+                )
+            )
+
+            return DiagnosticFinding(
+                rule_id="GPU_MEMORY_PRESSURE",
+                component=component,
+                title=(
+                    f"Critical GPU memory pressure: {device_id}"
+                    if critical and device_id
+                    else (
+                        "Critical GPU memory pressure"
+                        if critical
+                        else (
+                            f"High GPU memory utilization: {device_id}"
+                            if device_id
+                            else "High GPU memory utilization"
+                        )
+                    )
                 ),
+                explanation=explanation,
                 recommendation=(
                     "Inspect GPU workloads and running models. "
                     "Unload unused models or reduce batch size, "
@@ -317,12 +403,12 @@ class DiagnosticEngine:
                 **common,
             )
 
-        # GPU monitoring backend.
-        if check.name == "gpu":
+        # GPU monitoring backend or device detection.
+        if check.name == "gpu" or check.name.startswith("gpu."):
             return DiagnosticFinding(
                 rule_id="GPU_MONITORING",
-                component="gpu",
-                title="GPU monitoring unavailable",
+                component=DiagnosticEngine._gpu_component(check.name),
+                title=f"GPU monitoring unavailable: {check.name}",
                 explanation=check.message,
                 recommendation=(
                     "Check GPU detection, driver status and monitoring "

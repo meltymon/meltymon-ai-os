@@ -1,4 +1,3 @@
-
 """Tests for MELTYMON AI OS health evaluation."""
 
 from datetime import datetime, timezone
@@ -21,6 +20,31 @@ from meltymon_ai_os.monitoring.system import SystemSnapshot
 
 
 _DEFAULT_GPU = object()
+
+
+def create_gpu_snapshot(
+    *,
+    name: str = "Intel Arc A750",
+    device_id: str = "8086:56a1",
+    temperature: float | None = 50.0,
+    memory_used: int | None = 40,
+    memory_total: int | None = 100,
+) -> GPUSnapshot:
+    """Create a representative GPU snapshot."""
+
+    return GPUSnapshot(
+        timestamp=datetime(2026, 11, 2, tzinfo=timezone.utc),
+        gpu=GPUInfo(
+            name=name,
+            vendor="Intel",
+            driver="i915",
+            device_id=device_id,
+            backend="intel",
+        ),
+        temperature_celsius=temperature,
+        memory_used_bytes=memory_used,
+        memory_total_bytes=memory_total,
+    )
 
 
 def create_snapshot(
@@ -78,18 +102,12 @@ def create_snapshot(
     )
 
     if gpu is _DEFAULT_GPU:
-        gpu = GPUSnapshot(
-            timestamp=timestamp,
-            gpu=GPUInfo(
-                name="Intel Arc A750",
-                vendor="Intel",
-                driver="i915",
-                device_id="8086:56a1",
-                backend="intel",
+        gpu = (
+            create_gpu_snapshot(
+                temperature=gpu_temperature,
+                memory_used=gpu_memory_used,
+                memory_total=gpu_memory_total,
             ),
-            temperature_celsius=gpu_temperature,
-            memory_used_bytes=gpu_memory_used,
-            memory_total_bytes=gpu_memory_total,
         )
 
     return SystemSnapshot(
@@ -98,6 +116,13 @@ def create_snapshot(
         numa=numa_snapshot,
         gpu=gpu,
         errors=errors or {},
+    )
+
+
+def get_check(report, name):
+    """Return one health check by its exact name."""
+    return next(
+        check for check in report.checks if check.name == name
     )
 
 
@@ -116,10 +141,7 @@ def test_cpu_warning_threshold():
     snapshot = create_snapshot(cpu_percent=85.0)
 
     report = HealthEvaluator().evaluate(snapshot)
-
-    cpu_check = next(
-        check for check in report.checks if check.name == "cpu"
-    )
+    cpu_check = get_check(report, "cpu")
 
     assert cpu_check.status is HealthStatus.DEGRADED
     assert cpu_check.value == 85.0
@@ -130,10 +152,7 @@ def test_cpu_critical_threshold():
     snapshot = create_snapshot(cpu_percent=96.0)
 
     report = HealthEvaluator().evaluate(snapshot)
-
-    cpu_check = next(
-        check for check in report.checks if check.name == "cpu"
-    )
+    cpu_check = get_check(report, "cpu")
 
     assert cpu_check.status is HealthStatus.CRITICAL
     assert report.status is HealthStatus.CRITICAL
@@ -143,10 +162,7 @@ def test_memory_warning_threshold():
     snapshot = create_snapshot(memory_percent=90.0)
 
     report = HealthEvaluator().evaluate(snapshot)
-
-    memory_check = next(
-        check for check in report.checks if check.name == "memory"
-    )
+    memory_check = get_check(report, "memory")
 
     assert memory_check.status is HealthStatus.DEGRADED
 
@@ -155,10 +171,7 @@ def test_memory_critical_threshold():
     snapshot = create_snapshot(memory_percent=97.0)
 
     report = HealthEvaluator().evaluate(snapshot)
-
-    memory_check = next(
-        check for check in report.checks if check.name == "memory"
-    )
+    memory_check = get_check(report, "memory")
 
     assert memory_check.status is HealthStatus.CRITICAL
 
@@ -167,11 +180,9 @@ def test_gpu_temperature_warning_threshold():
     snapshot = create_snapshot(gpu_temperature=85.0)
 
     report = HealthEvaluator().evaluate(snapshot)
-
-    temperature_check = next(
-        check
-        for check in report.checks
-        if check.name == "gpu.temperature"
+    temperature_check = get_check(
+        report,
+        "gpu.8086:56a1.temperature",
     )
 
     assert temperature_check.status is HealthStatus.DEGRADED
@@ -181,11 +192,9 @@ def test_gpu_temperature_critical_threshold():
     snapshot = create_snapshot(gpu_temperature=95.0)
 
     report = HealthEvaluator().evaluate(snapshot)
-
-    temperature_check = next(
-        check
-        for check in report.checks
-        if check.name == "gpu.temperature"
+    temperature_check = get_check(
+        report,
+        "gpu.8086:56a1.temperature",
     )
 
     assert temperature_check.status is HealthStatus.CRITICAL
@@ -198,11 +207,9 @@ def test_gpu_memory_warning_threshold():
     )
 
     report = HealthEvaluator().evaluate(snapshot)
-
-    memory_check = next(
-        check
-        for check in report.checks
-        if check.name == "gpu.memory"
+    memory_check = get_check(
+        report,
+        "gpu.8086:56a1.memory",
     )
 
     assert memory_check.status is HealthStatus.DEGRADED
@@ -215,11 +222,9 @@ def test_gpu_memory_critical_threshold():
     )
 
     report = HealthEvaluator().evaluate(snapshot)
-
-    memory_check = next(
-        check
-        for check in report.checks
-        if check.name == "gpu.memory"
+    memory_check = get_check(
+        report,
+        "gpu.8086:56a1.memory",
     )
 
     assert memory_check.status is HealthStatus.CRITICAL
@@ -229,11 +234,9 @@ def test_missing_gpu_temperature_is_degraded():
     snapshot = create_snapshot(gpu_temperature=None)
 
     report = HealthEvaluator().evaluate(snapshot)
-
-    temperature_check = next(
-        check
-        for check in report.checks
-        if check.name == "gpu.temperature"
+    temperature_check = get_check(
+        report,
+        "gpu.8086:56a1.temperature",
     )
 
     assert temperature_check.status is HealthStatus.DEGRADED
@@ -248,11 +251,9 @@ def test_missing_gpu_memory_is_degraded():
     )
 
     report = HealthEvaluator().evaluate(snapshot)
-
-    memory_check = next(
-        check
-        for check in report.checks
-        if check.name == "gpu.memory"
+    memory_check = get_check(
+        report,
+        "gpu.8086:56a1.memory",
     )
 
     assert memory_check.status is HealthStatus.DEGRADED
@@ -265,10 +266,7 @@ def test_monitoring_error_is_degraded():
     )
 
     report = HealthEvaluator().evaluate(snapshot)
-
-    gpu_check = next(
-        check for check in report.checks if check.name == "gpu"
-    )
+    gpu_check = get_check(report, "gpu")
 
     assert gpu_check.status is HealthStatus.DEGRADED
     assert "GPU unavailable" in gpu_check.message
@@ -301,11 +299,9 @@ def test_numa_node_memory_is_evaluated():
     snapshot = create_snapshot(numa_memory_used=96)
 
     report = HealthEvaluator().evaluate(snapshot)
-
-    numa_check = next(
-        check
-        for check in report.checks
-        if check.name == "numa.node_0.memory"
+    numa_check = get_check(
+        report,
+        "numa.node_0.memory",
     )
 
     assert numa_check.status is HealthStatus.CRITICAL
@@ -316,10 +312,7 @@ def test_no_numa_nodes_is_degraded():
     snapshot = create_snapshot(numa_nodes=())
 
     report = HealthEvaluator().evaluate(snapshot)
-
-    numa_check = next(
-        check for check in report.checks if check.name == "numa"
-    )
+    numa_check = get_check(report, "numa")
 
     assert numa_check.status is HealthStatus.DEGRADED
 
@@ -354,10 +347,7 @@ def test_custom_thresholds():
     snapshot = create_snapshot(cpu_percent=70.0)
 
     report = HealthEvaluator(thresholds).evaluate(snapshot)
-
-    cpu_check = next(
-        check for check in report.checks if check.name == "cpu"
-    )
+    cpu_check = get_check(report, "cpu")
 
     assert cpu_check.status is HealthStatus.DEGRADED
     assert cpu_check.warning_threshold == 60.0
@@ -372,7 +362,7 @@ def test_reject_invalid_threshold_order():
         )
 
 
-def test_reject_threshold_above_100():
+def test_reject_percentage_threshold_above_100():
     with pytest.raises(ValueError, match="between 0 and 100"):
         HealthThresholds(
             memory_warning=90.0,
@@ -394,12 +384,170 @@ def test_zero_numa_memory_capacity_is_degraded():
     )
 
     report = HealthEvaluator().evaluate(snapshot)
-
-    numa_check = next(
-        check
-        for check in report.checks
-        if check.name == "numa.node_0.memory"
+    numa_check = get_check(
+        report,
+        "numa.node_0.memory",
     )
 
     assert numa_check.status is HealthStatus.DEGRADED
     assert report.status is HealthStatus.DEGRADED
+
+
+def test_no_detected_gpu_is_not_an_error():
+    snapshot = create_snapshot(gpu=())
+
+    report = HealthEvaluator().evaluate(snapshot)
+
+    assert report.status is HealthStatus.HEALTHY
+    assert not any(
+        check.name.startswith("gpu.")
+        for check in report.checks
+    )
+
+
+def test_multiple_gpus_are_evaluated_independently():
+    first_gpu = create_gpu_snapshot(
+        name="Intel Arc A750",
+        device_id="0000:01:00.0",
+        temperature=50.0,
+        memory_used=40,
+        memory_total=100,
+    )
+
+    second_gpu = create_gpu_snapshot(
+        name="Intel Arc A770",
+        device_id="0000:02:00.0",
+        temperature=95.0,
+        memory_used=98,
+        memory_total=100,
+    )
+
+    snapshot = create_snapshot(
+        gpu=(first_gpu, second_gpu),
+    )
+
+    report = HealthEvaluator().evaluate(snapshot)
+
+    first_temperature = get_check(
+        report,
+        "gpu.0000:01:00.0.temperature",
+    )
+    second_temperature = get_check(
+        report,
+        "gpu.0000:02:00.0.temperature",
+    )
+    first_memory = get_check(
+        report,
+        "gpu.0000:01:00.0.memory",
+    )
+    second_memory = get_check(
+        report,
+        "gpu.0000:02:00.0.memory",
+    )
+
+    assert first_temperature.status is HealthStatus.HEALTHY
+    assert first_memory.status is HealthStatus.HEALTHY
+
+    assert second_temperature.status is HealthStatus.CRITICAL
+    assert second_memory.status is HealthStatus.CRITICAL
+
+    assert report.status is HealthStatus.CRITICAL
+
+
+def test_missing_measurement_on_one_gpu_does_not_hide_another():
+    first_gpu = create_gpu_snapshot(
+        name="Intel Arc A750",
+        device_id="0000:01:00.0",
+        temperature=None,
+        memory_used=40,
+        memory_total=100,
+    )
+
+    second_gpu = create_gpu_snapshot(
+        name="Intel Arc A770",
+        device_id="0000:02:00.0",
+        temperature=50.0,
+        memory_used=40,
+        memory_total=100,
+    )
+
+    snapshot = create_snapshot(
+        gpu=(first_gpu, second_gpu),
+    )
+
+    report = HealthEvaluator().evaluate(snapshot)
+
+    assert get_check(
+        report,
+        "gpu.0000:01:00.0.temperature",
+    ).status is HealthStatus.DEGRADED
+
+    assert get_check(
+        report,
+        "gpu.0000:01:00.0.memory",
+    ).status is HealthStatus.HEALTHY
+
+    assert get_check(
+        report,
+        "gpu.0000:02:00.0.temperature",
+    ).status is HealthStatus.HEALTHY
+
+    assert get_check(
+        report,
+        "gpu.0000:02:00.0.memory",
+    ).status is HealthStatus.HEALTHY
+
+
+def test_gpu_temperature_thresholds_can_exceed_100_degrees():
+    thresholds = HealthThresholds(
+        gpu_temperature_warning=110.0,
+        gpu_temperature_critical=120.0,
+    )
+
+    snapshot = create_snapshot(gpu_temperature=115.0)
+
+    report = HealthEvaluator(thresholds).evaluate(snapshot)
+
+    temperature_check = get_check(
+        report,
+        "gpu.8086:56a1.temperature",
+    )
+
+    assert temperature_check.status is HealthStatus.DEGRADED
+    assert temperature_check.value == 115.0
+
+
+def test_gpu_temperature_above_100_is_valid_measurement():
+    snapshot = create_snapshot(gpu_temperature=105.0)
+
+    report = HealthEvaluator().evaluate(snapshot)
+
+    temperature_check = get_check(
+        report,
+        "gpu.8086:56a1.temperature",
+    )
+
+    assert temperature_check.status is HealthStatus.CRITICAL
+    assert temperature_check.value == 105.0
+
+
+def test_reject_negative_gpu_temperature_threshold():
+    with pytest.raises(ValueError, match="at least 0"):
+        HealthThresholds(
+            gpu_temperature_warning=-1.0,
+            gpu_temperature_critical=90.0,
+        )
+
+
+def test_gpu_check_message_contains_device_identity():
+    snapshot = create_snapshot(gpu_temperature=85.0)
+
+    report = HealthEvaluator().evaluate(snapshot)
+
+    temperature_check = get_check(
+        report,
+        "gpu.8086:56a1.temperature",
+    )
+
+    assert "Intel Arc A750" in temperature_check.message
+    assert "8086:56a1" in temperature_check.message

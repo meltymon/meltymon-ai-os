@@ -1,4 +1,3 @@
-
 """System health evaluation for MELTYMON AI OS."""
 
 import math
@@ -35,15 +34,11 @@ class HealthThresholds:
     gpu_memory_critical: float = 97.0
 
     def __post_init__(self) -> None:
-        """Validate all warning and critical threshold pairs."""
-        pairs = (
+        """Validate percentage and temperature threshold pairs."""
+
+        percentage_pairs = (
             ("CPU", self.cpu_warning, self.cpu_critical),
             ("Memory", self.memory_warning, self.memory_critical),
-            (
-                "GPU temperature",
-                self.gpu_temperature_warning,
-                self.gpu_temperature_critical,
-            ),
             (
                 "GPU memory",
                 self.gpu_memory_warning,
@@ -51,22 +46,71 @@ class HealthThresholds:
             ),
         )
 
-        for name, warning, critical in pairs:
-            if not math.isfinite(warning) or not math.isfinite(critical):
-                raise ValueError(
-                    f"{name} thresholds must be finite"
-                )
+        temperature_pair = (
+            self.gpu_temperature_warning,
+            self.gpu_temperature_critical,
+        )
 
-            if warning < 0 or critical > 100:
-                raise ValueError(
-                    f"{name} thresholds must be between 0 and 100"
-                )
+        for name, warning, critical in percentage_pairs:
+            self._validate_pair(
+                name,
+                warning,
+                critical,
+                minimum=0.0,
+                maximum=100.0,
+            )
 
-            if warning >= critical:
-                raise ValueError(
-                    f"{name} warning threshold must be lower "
-                    "than its critical threshold"
-                )
+        self._validate_pair(
+            "GPU temperature",
+            *temperature_pair,
+            minimum=0.0,
+            maximum=None,
+        )
+
+    @staticmethod
+    def _validate_pair(
+        name: str,
+        warning: float,
+        critical: float,
+        *,
+        minimum: float,
+        maximum: float | None,
+    ) -> None:
+        """Validate a warning/critical threshold pair."""
+
+        if (
+            not isinstance(warning, (int, float))
+            or isinstance(warning, bool)
+            or not isinstance(critical, (int, float))
+            or isinstance(critical, bool)
+        ):
+            raise ValueError(
+                f"{name} thresholds must be numeric"
+            )
+
+        if not math.isfinite(warning) or not math.isfinite(critical):
+            raise ValueError(
+                f"{name} thresholds must be finite"
+            )
+
+        if warning < minimum or critical < minimum:
+            raise ValueError(
+                f"{name} thresholds must be at least {minimum}"
+            )
+
+        if maximum is not None and (
+            warning > maximum or critical > maximum
+        ):
+            raise ValueError(
+                f"{name} thresholds must be between "
+                f"{minimum:g} and {maximum:g}"
+            )
+
+        if warning >= critical:
+            raise ValueError(
+                f"{name} warning threshold must be lower "
+                "than its critical threshold"
+            )
 
 
 @dataclass(frozen=True)
@@ -200,6 +244,98 @@ class HealthEvaluator:
             critical_threshold=critical,
         )
 
+    @staticmethod
+    def _gpu_identifier(gpu) -> str:
+        """Return a stable identifier for one GPU."""
+        if gpu.gpu.device_id:
+            return gpu.gpu.device_id
+
+        return f"{gpu.gpu.vendor}:{gpu.gpu.name}"
+
+    @staticmethod
+    def _gpu_description(gpu, identifier: str) -> str:
+        """Create a human-readable GPU description."""
+        return f"{gpu.gpu.name} ({identifier})"
+
+    def _evaluate_gpu(
+        self,
+        gpu,
+        checks: list[HealthCheck],
+    ) -> None:
+        """Evaluate temperature and memory for one GPU."""
+
+        thresholds = self.thresholds
+        identifier = self._gpu_identifier(gpu)
+        description = self._gpu_description(gpu, identifier)
+
+        temperature_name = (
+            f"gpu.{identifier}.temperature"
+        )
+
+        if gpu.temperature_celsius is None:
+            checks.append(
+                self._missing_check(
+                    temperature_name,
+                    f"{description}: GPU temperature measurement unavailable",
+                )
+            )
+
+        else:
+            temperature_check = self._evaluate_range(
+                temperature_name,
+                gpu.temperature_celsius,
+                "°C",
+                thresholds.gpu_temperature_warning,
+                thresholds.gpu_temperature_critical,
+                maximum=float("inf"),
+            )
+
+            checks.append(
+                HealthCheck(
+                    name=temperature_check.name,
+                    status=temperature_check.status,
+                    message=(
+                        f"{description}: {temperature_check.message}"
+                    ),
+                    value=temperature_check.value,
+                    unit=temperature_check.unit,
+                    warning_threshold=temperature_check.warning_threshold,
+                    critical_threshold=temperature_check.critical_threshold,
+                )
+            )
+
+        memory_name = f"gpu.{identifier}.memory"
+        gpu_memory_percent = gpu.memory_percent
+
+        if gpu_memory_percent is None:
+            checks.append(
+                self._missing_check(
+                    memory_name,
+                    f"{description}: GPU memory usage measurement unavailable",
+                )
+            )
+
+        else:
+            memory_check = self._evaluate_range(
+                memory_name,
+                gpu_memory_percent,
+                "%",
+                thresholds.gpu_memory_warning,
+                thresholds.gpu_memory_critical,
+            )
+
+            checks.append(
+                HealthCheck(
+                    name=memory_check.name,
+                    status=memory_check.status,
+                    message=f"{description}: {memory_check.message}",
+                    value=memory_check.value,
+                    unit=memory_check.unit,
+                    warning_threshold=memory_check.warning_threshold,
+                    critical_threshold=memory_check.critical_threshold,
+                )
+            )
+
     def evaluate(
         self,
         snapshot: SystemSnapshot,
@@ -313,48 +449,10 @@ class HealthEvaluator:
                 )
 
         else:
-            gpu = snapshot.gpu
+            for gpu in snapshot.gpu:
+                self._evaluate_gpu(gpu, checks)
 
-            if gpu.temperature_celsius is None:
-                checks.append(
-                    self._missing_check(
-                        "gpu.temperature",
-                        "GPU temperature measurement unavailable",
-                    )
-                )
-
-            else:
-                checks.append(
-                    self._evaluate_range(
-                        "gpu.temperature",
-                        gpu.temperature_celsius,
-                        "°C",
-                        thresholds.gpu_temperature_warning,
-                        thresholds.gpu_temperature_critical,
-                        maximum=float("inf"),
-                    )
-                )
-
-            gpu_memory_percent = gpu.memory_percent
-
-            if gpu_memory_percent is None:
-                checks.append(
-                    self._missing_check(
-                        "gpu.memory",
-                        "GPU memory usage measurement unavailable",
-                    )
-                )
-
-            else:
-                checks.append(
-                    self._evaluate_range(
-                        "gpu.memory",
-                        gpu_memory_percent,
-                        "%",
-                        thresholds.gpu_memory_warning,
-                        thresholds.gpu_memory_critical,
-                    )
-                )
+        # An empty GPU tuple is valid: no GPU was detected.
 
         # Determine the overall system health.
         if any(

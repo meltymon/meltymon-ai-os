@@ -1,5 +1,6 @@
-
 """Hardware-independent GPU monitoring interfaces."""
+
+from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -36,8 +37,7 @@ class GPUSnapshot:
 
     @property
     def memory_percent(self) -> float | None:
-        """Return GPU memory utilization in percent."""
-
+        """Return GPU memory utilization as a percentage."""
         if (
             self.memory_used_bytes is None
             or self.memory_total_bytes is None
@@ -45,62 +45,134 @@ class GPUSnapshot:
         ):
             return None
 
-        return (
-            self.memory_used_bytes
-            / self.memory_total_bytes
-            * 100.0
-        )
+        return self.memory_used_bytes / self.memory_total_bytes * 100.0
 
 
 class BaseGPUBackend(ABC):
-    """Abstract interface for vendor-specific GPU monitoring."""
+    """Abstract interface for vendor-specific GPU backends."""
 
     @abstractmethod
     async def detect(self) -> list[GPUInfo]:
-        """Detect available GPUs."""
+        """Detect GPUs supported by this backend."""
         raise NotImplementedError
 
     @abstractmethod
     async def collect(self, gpu: GPUInfo) -> GPUSnapshot:
-        """Collect utilization and hardware information."""
+        """Collect telemetry for one GPU."""
         raise NotImplementedError
 
 
 class GPUMonitor:
-    """Coordinate GPU detection and resource collection."""
+    """Discover GPUs and collect telemetry through independent backends.
+
+    When no backend list is supplied, the Intel sysfs backend is enabled
+    by default. Passing an explicit empty list disables GPU backends.
+
+    Detection runs on every collection cycle so that newly added or
+    removed devices are reflected in the next snapshot.
+    """
 
     def __init__(
         self,
         backends: list[BaseGPUBackend] | None = None,
     ) -> None:
-        self.backends = backends or []
+        """Initialize GPU monitoring.
+
+        Args:
+            backends: Explicit backend instances. If omitted, the Intel
+                backend is registered automatically. An empty list
+                explicitly disables GPU monitoring.
+        """
+        if backends is None:
+            from meltymon_ai_os.monitoring.gpu_intel import (
+                IntelGPUBackend,
+            )
+
+            self.backends = [IntelGPUBackend()]
+        else:
+            self.backends = list(backends)
+
         self.detected_gpus: list[
             tuple[BaseGPUBackend, GPUInfo]
         ] = []
 
-    async def detect(self) -> list[GPUInfo]:
-        """Detect GPUs using all registered backends."""
+        self.errors: dict[str, str] = {}
 
+    @staticmethod
+    def _backend_key(backend: BaseGPUBackend) -> str:
+        """Create a stable, readable key for a backend."""
+        name = type(backend).__name__
+
+        if name.endswith("GPUBackend"):
+            name = name[:-len("GPUBackend")]
+
+        return name.lower() or "unknown"
+
+    @staticmethod
+    def _device_key(gpu: GPUInfo) -> str:
+        """Create a readable key for an individual GPU."""
+        identifier = gpu.device_id or gpu.name
+        return f"gpu.{identifier}"
+
+    async def detect(self) -> list[GPUInfo]:
+        """Detect all GPUs while isolating backend failures.
+
+        A failed backend does not prevent other backends from detecting
+        their devices.
+        """
         self.detected_gpus = []
+        self.errors = {}
+
+        detected: list[GPUInfo] = []
 
         for backend in self.backends:
-            devices = await backend.detect()
+            backend_key = self._backend_key(backend)
 
-            for device in devices:
-                self.detected_gpus.append((backend, device))
+            try:
+                devices = await backend.detect()
 
-        return [
-            device
-            for _, device in self.detected_gpus
-        ]
+                if devices is None:
+                    raise RuntimeError(
+                        "Backend returned no detection result"
+                    )
 
-    async def collect(self) -> list[GPUSnapshot]:
-        """Collect snapshots from all detected GPUs."""
+                for device in devices:
+                    self.detected_gpus.append((backend, device))
+                    detected.append(device)
 
-        snapshots = []
+            except Exception as exc:
+                self.errors[
+                    f"gpu.backend.{backend_key}"
+                ] = f"{type(exc).__name__}: {exc}"
+
+        return detected
+
+    async def collect(self) -> tuple[GPUSnapshot, ...]:
+        """Detect GPUs and collect all available telemetry.
+
+        Collection errors are recorded per device. Successful snapshots
+        from other devices are preserved.
+        """
+        await self.detect()
+
+        snapshots: list[GPUSnapshot] = []
 
         for backend, gpu in self.detected_gpus:
-            snapshot = await backend.collect(gpu)
-            snapshots.append(snapshot)
+            device_key = self._device_key(gpu)
 
-        return snapshots
+            try:
+                snapshot = await backend.collect(gpu)
+
+                if snapshot is None:
+                    raise RuntimeError(
+                        "Backend returned no telemetry snapshot"
+                    )
+
+                snapshots.append(snapshot)
+
+            except Exception as exc:
+                self.errors[device_key] = (
+                    f"{type(exc).__name__}: {exc}"
+                )
+
+        return tuple(snapshots)

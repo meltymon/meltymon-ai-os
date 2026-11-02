@@ -135,6 +135,7 @@ def test_memory_pressure_creates_memory_finding():
 
 
 def test_gpu_temperature_creates_temperature_finding():
+    """Legacy single-GPU temperature check remains supported."""
     report = create_report(
         create_check(
             "gpu.temperature",
@@ -156,6 +157,7 @@ def test_gpu_temperature_creates_temperature_finding():
 
 
 def test_gpu_memory_creates_memory_finding():
+    """Legacy single-GPU memory check remains supported."""
     report = create_report(
         create_check(
             "gpu.memory",
@@ -172,6 +174,154 @@ def test_gpu_memory_creates_memory_finding():
     assert finding.component == "gpu"
     assert finding.severity is DiagnosticSeverity.WARNING
     assert "models" in finding.recommendation.lower()
+
+
+def test_multi_gpu_temperature_creates_device_specific_finding():
+    device_id = "8086:56a1"
+
+    report = create_report(
+        create_check(
+            f"gpu.{device_id}.temperature",
+            HealthStatus.CRITICAL,
+            message="Intel Arc GPU temperature is critical",
+            value=96.0,
+            unit="°C",
+        )
+    )
+
+    result = DiagnosticEngine().diagnose(report)
+
+    assert len(result.findings) == 1
+
+    finding = result.findings[0]
+
+    assert finding.rule_id == "GPU_TEMPERATURE"
+    assert finding.component == f"gpu.{device_id}"
+    assert finding.severity is DiagnosticSeverity.CRITICAL
+    assert finding.observed_value == 96.0
+    assert finding.unit == "°C"
+    assert device_id in finding.title
+    assert "Intel Arc" in finding.explanation
+
+
+def test_multi_gpu_memory_creates_device_specific_finding():
+    device_id = "10de:2684"
+
+    report = create_report(
+        create_check(
+            f"gpu.{device_id}.memory",
+            HealthStatus.DEGRADED,
+            message="NVIDIA GPU memory utilization is elevated",
+            value=92.0,
+        )
+    )
+
+    result = DiagnosticEngine().diagnose(report)
+
+    assert len(result.findings) == 1
+
+    finding = result.findings[0]
+
+    assert finding.rule_id == "GPU_MEMORY_PRESSURE"
+    assert finding.component == f"gpu.{device_id}"
+    assert finding.severity is DiagnosticSeverity.WARNING
+    assert finding.observed_value == 92.0
+    assert device_id in finding.title
+    assert "NVIDIA GPU" in finding.explanation
+    assert "models" in finding.recommendation.lower()
+
+
+def test_multiple_gpus_create_independent_findings():
+    intel_id = "8086:56a1"
+    nvidia_id = "10de:2684"
+
+    report = create_report(
+        create_check(
+            f"gpu.{intel_id}.temperature",
+            HealthStatus.CRITICAL,
+            message="Intel GPU temperature critical",
+            value=98.0,
+            unit="°C",
+        ),
+        create_check(
+            f"gpu.{nvidia_id}.memory",
+            HealthStatus.DEGRADED,
+            message="NVIDIA GPU memory elevated",
+            value=90.0,
+        ),
+    )
+
+    result = DiagnosticEngine().diagnose(report)
+
+    assert len(result.findings) == 2
+
+    temperature_finding, memory_finding = result.findings
+
+    assert temperature_finding.rule_id == "GPU_TEMPERATURE"
+    assert temperature_finding.component == f"gpu.{intel_id}"
+    assert temperature_finding.severity is DiagnosticSeverity.CRITICAL
+
+    assert memory_finding.rule_id == "GPU_MEMORY_PRESSURE"
+    assert memory_finding.component == f"gpu.{nvidia_id}"
+    assert memory_finding.severity is DiagnosticSeverity.WARNING
+
+    assert result.severity is DiagnosticSeverity.CRITICAL
+    assert len(result.critical_findings) == 1
+    assert len(result.warning_findings) == 1
+
+
+def test_gpu_device_monitoring_error_preserves_device_id():
+    device_id = "8086:56a1"
+
+    report = create_report(
+        create_check(
+            f"gpu.{device_id}",
+            HealthStatus.DEGRADED,
+            message="Monitoring error: GPU telemetry unavailable",
+            value=None,
+            unit=None,
+            warning=None,
+            critical=None,
+        )
+    )
+
+    result = DiagnosticEngine().diagnose(report)
+
+    assert len(result.findings) == 1
+
+    finding = result.findings[0]
+
+    assert finding.rule_id == "MONITORING_DATA_INVALID"
+    assert finding.component == f"gpu.{device_id}"
+    assert finding.severity is DiagnosticSeverity.WARNING
+    assert finding.observed_value is None
+
+
+def test_gpu_backend_monitoring_error_preserves_backend_id():
+    backend_id = "gpu.backend.intel"
+
+    report = create_report(
+        create_check(
+            backend_id,
+            HealthStatus.DEGRADED,
+            message="Monitoring error: Intel GPU backend unavailable",
+            value=None,
+            unit=None,
+            warning=None,
+            critical=None,
+        )
+    )
+
+    result = DiagnosticEngine().diagnose(report)
+
+    assert len(result.findings) == 1
+
+    finding = result.findings[0]
+
+    assert finding.rule_id == "MONITORING_DATA_INVALID"
+    assert finding.component == backend_id
+    assert finding.severity is DiagnosticSeverity.WARNING
+    assert "Intel GPU backend unavailable" in finding.explanation
 
 
 def test_numa_node_memory_creates_node_specific_finding():

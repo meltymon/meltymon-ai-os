@@ -1,4 +1,3 @@
-
 """Central system monitoring orchestration for MELTYMON AI OS."""
 
 import asyncio
@@ -17,14 +16,19 @@ from meltymon_ai_os.monitoring.resources import (
 class SystemSnapshot:
     """Combined snapshot of all monitored system components.
 
-    Individual component snapshots are optional. This allows the
-    monitoring system to remain operational if one component fails.
+    Individual component snapshots are optional. GPU monitoring uses
+    a tuple because multiple devices can be present.
+
+    GPU semantics:
+        None: GPU collection failed.
+        (): GPU collection succeeded, but no GPUs were detected.
+        (snapshot, ...): Successfully collected GPU snapshots.
     """
 
     timestamp: datetime
     resources: ResourceSnapshot | None
     numa: NUMASnapshot | None
-    gpu: GPUSnapshot | None
+    gpu: tuple[GPUSnapshot, ...] | None
     errors: dict[str, str]
 
     @property
@@ -63,9 +67,23 @@ class SystemMonitor:
         Custom monitor instances can be injected for testing or
         specialized system configurations.
         """
-        self.resource_monitor = resource_monitor or ResourceMonitor()
-        self.numa_monitor = numa_monitor or NUMAMonitor()
-        self.gpu_monitor = gpu_monitor or GPUMonitor()
+        self.resource_monitor = (
+            resource_monitor
+            if resource_monitor is not None
+            else ResourceMonitor()
+        )
+
+        self.numa_monitor = (
+            numa_monitor
+            if numa_monitor is not None
+            else NUMAMonitor()
+        )
+
+        self.gpu_monitor = (
+            gpu_monitor
+            if gpu_monitor is not None
+            else GPUMonitor()
+        )
 
     @staticmethod
     async def _collect_component(
@@ -90,6 +108,10 @@ class SystemMonitor:
 
         All monitoring components run concurrently. A failure in one
         component does not prevent the others from returning data.
+
+        GPU backend and device errors are additionally collected from
+        GPUMonitor.errors. This allows successful GPU snapshots to be
+        retained even when another GPU fails.
         """
         monitors = (
             ("resources", self.resource_monitor),
@@ -112,6 +134,13 @@ class SystemMonitor:
 
             if error is not None:
                 errors[name] = error
+
+        # Preserve individual backend/device errors reported by GPUMonitor.
+        gpu_errors = getattr(self.gpu_monitor, "errors", {})
+
+        if isinstance(gpu_errors, dict):
+            for component, error in gpu_errors.items():
+                errors[component] = str(error)
 
         return SystemSnapshot(
             timestamp=datetime.now(timezone.utc),

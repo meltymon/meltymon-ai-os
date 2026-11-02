@@ -1,10 +1,7 @@
-
 """Tests for the central system monitoring orchestrator."""
 
 import asyncio
 from datetime import datetime, timezone
-
-import pytest
 
 from meltymon_ai_os.monitoring.system import SystemMonitor
 
@@ -16,6 +13,7 @@ class FakeMonitor:
         self.result = result
         self.error = error
         self.called = False
+        self.errors = {}
 
     async def collect(self):
         self.called = True
@@ -29,7 +27,7 @@ class FakeMonitor:
 def test_collect_returns_all_component_snapshots():
     resources = object()
     numa = object()
-    gpu = object()
+    gpu = (object(), object())
 
     resource_monitor = FakeMonitor(resources)
     numa_monitor = FakeMonitor(numa)
@@ -83,7 +81,7 @@ def test_gpu_failure_does_not_affect_other_components():
 
 def test_resource_failure_does_not_affect_other_components():
     numa = object()
-    gpu = object()
+    gpu = (object(),)
 
     monitor = SystemMonitor(
         resource_monitor=FakeMonitor(
@@ -109,7 +107,7 @@ def test_multiple_component_failures_are_reported():
         numa_monitor=FakeMonitor(
             error=RuntimeError("NUMA monitoring failed")
         ),
-        gpu_monitor=FakeMonitor(object()),
+        gpu_monitor=FakeMonitor((object(),)),
     )
 
     snapshot = asyncio.run(monitor.collect())
@@ -124,7 +122,7 @@ def test_none_result_is_reported_as_failure():
     monitor = SystemMonitor(
         resource_monitor=FakeMonitor(None),
         numa_monitor=FakeMonitor(object()),
-        gpu_monitor=FakeMonitor(object()),
+        gpu_monitor=FakeMonitor((object(),)),
     )
 
     snapshot = asyncio.run(monitor.collect())
@@ -139,7 +137,7 @@ def test_snapshot_contains_utc_timestamp():
     monitor = SystemMonitor(
         resource_monitor=FakeMonitor(object()),
         numa_monitor=FakeMonitor(object()),
-        gpu_monitor=FakeMonitor(object()),
+        gpu_monitor=FakeMonitor(()),
     )
 
     snapshot = asyncio.run(monitor.collect())
@@ -168,6 +166,43 @@ def test_available_components_is_empty_when_all_fail():
     assert len(snapshot.errors) == 3
 
 
+def test_gpu_backend_errors_are_preserved():
+    gpu_monitor = FakeMonitor(
+        result=(object(),),
+    )
+    gpu_monitor.errors = {
+        "gpu.0000:02:00.0": "RuntimeError: Telemetry unavailable",
+        "gpu.backend.nvidia": "RuntimeError: Driver unavailable",
+    }
+
+    monitor = SystemMonitor(
+        resource_monitor=FakeMonitor(object()),
+        numa_monitor=FakeMonitor(object()),
+        gpu_monitor=gpu_monitor,
+    )
+
+    snapshot = asyncio.run(monitor.collect())
+
+    assert snapshot.gpu == (gpu_monitor.result[0],)
+    assert snapshot.errors == gpu_monitor.errors
+    assert snapshot.healthy is False
+
+
+def test_empty_gpu_tuple_is_successful_collection():
+    monitor = SystemMonitor(
+        resource_monitor=FakeMonitor(object()),
+        numa_monitor=FakeMonitor(object()),
+        gpu_monitor=FakeMonitor(()),
+    )
+
+    snapshot = asyncio.run(monitor.collect())
+
+    assert snapshot.gpu == ()
+    assert "gpu" in snapshot.available_components
+    assert snapshot.healthy is True
+    assert snapshot.errors == {}
+
+
 def test_system_monitor_integrates_real_components():
     """Test integration with the actual monitoring modules."""
 
@@ -185,7 +220,13 @@ def test_system_monitor_integrates_real_components():
     if snapshot.numa is not None:
         assert snapshot.numa.node_count >= 0
 
+    if snapshot.gpu is not None:
+        assert isinstance(snapshot.gpu, tuple)
+
     for component, error in snapshot.errors.items():
-        assert component in ("resources", "numa", "gpu")
+        assert (
+            component in ("resources", "numa", "gpu")
+            or component.startswith("gpu.")
+        )
         assert isinstance(error, str)
         assert error
