@@ -1,0 +1,59 @@
+name: Question
+description: Ask a technical question about MELTYMON AI OS.
+title: "[QUESTION] "
+labels:
+  - question
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for your interest in MELTYMON AI OS!
+
+        Before submitting, please check the documentation and existing discussions.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Related Component
+      options:
+        - Core
+        - Agent Framework
+        - Orchestrator
+        - Ollama Backend
+        - Model Management
+        - GPU Monitoring
+        - System Monitoring
+        - Health and Diagnostics
+        - Installation
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: Describe what you would like to know.
+      placeholder: Explain your question and provide relevant context.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Environment and Context
+      description: Include relevant operating system, Python version and configuration.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I have checked the documentation and existing discussions.
+          required: true
+        - label: I have removed sensitive information from my examples.
+          required: true
