@@ -1,0 +1,77 @@
+name: Feature Request
+description: Suggest a new feature or improvement.
+title: "[FEATURE] "
+labels:
+  - enhancement
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an improvement!
+
+        We welcome ideas that make MELTYMON AI OS more useful, modular and reliable.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Related Component
+      options:
+        - Core
+        - Agent Framework
+        - Multi-Agent Orchestration
+        - Ollama Backend
+        - Model Management
+        - GPU Monitoring
+        - System Monitoring
+        - Health and Diagnostics
+        - Security
+        - User Interface
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Motivation
+      description: What problem would this feature solve?
+      placeholder: Describe the problem or use case.
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe how you imagine this feature working.
+      placeholder: Explain your proposed solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Have you considered alternative approaches?
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add examples, diagrams or references if useful.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I have checked whether this feature has already been suggested.
+          required: true
+        - label: This feature fits the goals of MELTYMON AI OS.
+          required: true

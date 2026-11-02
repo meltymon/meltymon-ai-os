@@ -1,0 +1,115 @@
+name: Bug Report
+description: Report a reproducible bug or unexpected behavior.
+title: "[BUG] "
+labels:
+  - bug
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug!
+
+        Please provide as much detail as possible so we can investigate the issue.
+
+  - type: input
+    id: version
+    attributes:
+      label: MELTYMON AI OS Version
+      description: Which version or commit are you using?
+      placeholder: "e.g. main / commit hash"
+    validations:
+      required: true
+
+  - type: input
+    id: operating-system
+    attributes:
+      label: Operating System
+      description: Include distribution and version.
+      placeholder: "e.g. CachyOS, Debian 13, Ubuntu 24.04"
+    validations:
+      required: true
+
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      placeholder: "e.g. Python 3.14"
+    validations:
+      required: false
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component
+      options:
+        - Core
+        - Agent Framework
+        - Orchestrator
+        - Ollama Backend
+        - Model Management
+        - GPU Monitoring
+        - System Monitoring
+        - Health and Diagnostics
+        - Configuration
+        - Installation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: Describe what happened.
+      placeholder: A clear description of the problem.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Provide the steps needed to reproduce the issue.
+      placeholder: |
+        1. Start the application.
+        2. Configure ...
+        3. Execute ...
+        4. Observe the error.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      placeholder: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      placeholder: What happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and Error Messages
+      description: Remove credentials, tokens and other sensitive information before posting.
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I have checked whether this issue has already been reported.
+          required: true
+        - label: I have removed sensitive information from logs and examples.
+          required: true

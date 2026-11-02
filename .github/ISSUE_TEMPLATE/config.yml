@@ -1,0 +1,10 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Questions and Community Discussions
+    url: https://github.com/meltymon/meltymon-ai-os/discussions
+    about: Ask questions, share ideas and discuss the project with the community.
+
+  - name: Security Vulnerability
+    url: https://github.com/meltymon/meltymon-ai-os/security/advisories/new
+    about: Report security vulnerabilities privately. Do not disclose vulnerabilities in public issues.
