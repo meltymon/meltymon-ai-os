@@ -1,0 +1,6 @@
+ollama:
+  base_url: "http://127.0.0.1:11434"
+  timeout: 60.0
+
+models:
+  default: "gemma4:e4b"
