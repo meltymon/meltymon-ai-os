@@ -1,662 +1,315 @@
+# MELTYMON AI OS — Architecture
 
-# MELTYMON AI OS – Architecture
+This document describes the architecture and implementation boundaries of MELTYMON AI OS. It distinguishes working components from scaffolding and planned functionality. A package directory, interface, or exception type alone does not imply that an end-to-end feature is available.
 
-This document describes the current software architecture of MELTYMON AI OS.
+## 1. Architectural overview
 
-It focuses on implemented components, their responsibilities, their relationships, and the architectural principles guiding future development.
+MELTYMON AI OS is a modular, local-first platform for operating and eventually orchestrating local AI workloads. Its current implementation combines configuration, an Ollama backend, model metadata, hardware monitoring, health evaluation, diagnostics, an Agent Runtime, controlled execution, and initial agent orchestration.
 
-Planned components are explicitly identified as such. Their presence in the project structure does not imply that their functionality has already been implemented.
+The implementation is a foundation, not yet a complete autonomous-agent platform. In particular, the current code does not provide complete agent-to-model integration, automatic model selection, resource-aware scheduling, persistent agent memory, or an enforced authorization system.
 
----
+### 1.1 Component status
 
-## 1. Architectural Overview
+| Area | Responsibility | Current status |
+|---|---|---|
+| Configuration | Central settings and validation | Implemented |
+| AI backend | Communication with inference services | Ollama implementation available |
+| Model management | Catalog and normalized model metadata | Implemented foundation |
+| Monitoring | CPU, memory, NUMA, and GPU telemetry | Implemented foundation |
+| Health evaluation | Health state derived from monitoring data | Implemented foundation |
+| Diagnostics | Rule-based findings and severity | Implemented foundation |
+| Monitoring API | Public Python access and serialization | Implemented |
+| Agent Runtime | Agent contract, context, results, lifecycle, capabilities | Implemented |
+| Execution | Bounded asynchronous batch execution and reports | Implemented |
+| Orchestration | Factory registry and agent dispatch | Initial implementation |
+| Audit, Memory, Security, Validation | Future supporting subsystems | Package scaffolding only |
+| User interface | Interactive management interface | Planned |
 
-MELTYMON AI OS is designed as a modular, local-first AI orchestration platform.
-
-The architecture separates AI backend integration, model management, hardware monitoring, health evaluation, diagnostics, configuration, and public interfaces.
-
-The current implementation establishes the foundation for these subsystems.
-
-The intended high-level architecture is:
+### 1.2 High-level structure
 
 ```text
-                    MELTYMON AI OS
-                           |
-          +----------------+----------------+
-          |                |                |
-       AI Layer        System Layer     Core Services
-          |                |                |
-     AI Backends       Monitoring        Configuration
-          |                |                |
-       Ollama          CPU / RAM        Settings
-          |                |                |
-     Model Catalog       NUMA           Validation
-          |                |                |
-     Model Metadata       GPU
-                           |
-                    System Monitor
-                           |
-                   Monitoring Service
-                           |
-              +------------+------------+
-              |            |            |
-          Snapshot       Health     Diagnostics
-          / API        Evaluation      Engine
-              |
-         Serialization
-              |
-        JSON / Dictionary
+                         MELTYMON AI OS
+                               |
+       +-----------------------+-----------------------+
+       |                       |                       |
+  AI and Models           System Insight          Agent Runtime
+       |                       |                       |
+  Backend interface        Monitoring             Agent contract
+       |                       |                       |
+     Ollama            CPU / RAM / NUMA / GPU      Context / Result
+       |                       |                       |
+  Model catalog          Health evaluation         Lifecycle
+  Model metadata         Diagnostics               Capabilities
+                               |                       |
+                       Monitoring service       Execution manager
+                               |                       |
+                       Public monitoring API       Orchestrator
+                                                       |
+                                                Agent registry
+                                                (factories)
 ```
 
-This diagram represents the current implemented foundation. Future agent, orchestration, memory, and security layers will build on top of it.
+This is a logical view of the implemented subsystems, not a claim that every subsystem is already connected end to end. In particular, the Agent Runtime and the Ollama/model/monitoring layers remain separate foundations pending integration work.
 
----
+## 2. Architectural principles
 
-## 2. Design Principles
+### Modularity and explicit contracts
 
-The architecture follows several core principles.
-
-### Modularity
-
-Each subsystem has a clearly defined responsibility.
-
-Components should communicate through explicit interfaces rather than depending on unrelated implementation details.
+Each subsystem has a defined responsibility. Components should communicate through explicit interfaces and stable data contracts rather than reaching into unrelated implementation details.
 
 ### Local-first operation
 
-The initial AI backend integration targets a local Ollama instance.
-
-The default API endpoint is:
-
-`http://127.0.0.1:11434`
-
-Local execution is the default, not an afterthought.
+The initial inference integration targets a local Ollama service. The default endpoint is `http://127.0.0.1:11434`. The architecture should not require a cloud AI service for its basic local operating model.
 
 ### Hardware awareness
 
-The platform collects information about available system resources and hardware.
-
-This provides a foundation for future resource-aware model selection and workload scheduling.
+CPU, memory, NUMA, and GPU information provide the foundation for future resource-aware model selection and workload scheduling. Collecting telemetry does not, by itself, implement scheduling or optimization.
 
 ### Fault isolation
 
-An error in one monitoring component or GPU device should not unnecessarily prevent unrelated components from working.
+A failure in one monitoring provider, GPU device, or agent should be represented locally wherever possible. Independent components should remain usable when a peer component fails.
 
 ### Testability
 
-Components should be testable independently and without requiring specific physical hardware.
+Components should be testable without dedicated physical hardware or a running inference service wherever practical. External dependencies and hardware interfaces should be replaceable with controlled test doubles.
 
-### Explicit state representation
+### Explicit state and immutable data
 
-Missing information, unavailable monitoring, and successful empty results must remain distinguishable.
+Unavailable information, a successful empty result, and an actual failure must remain distinguishable. Immutable data structures are used for important contracts such as agent contexts, results, capabilities, and execution reports to reduce accidental mutation and hidden side effects.
 
-### Extensibility
+### Controlled execution
 
-New AI backends, GPU monitoring providers, and future services should be integrable without redesigning the entire platform.
+Agent execution is bounded by lifecycle rules, concurrency limits, timeout policies, and explicit cancellation handling. Cancellation is cooperative: it requests that asynchronous work stop; it is not a guarantee that arbitrary already-running code can be forcibly terminated.
 
----
+## 3. Package structure
 
-## 3. Package Structure
+The source code is organized below `src/meltymon_ai_os/`.
 
-The source code is organized into separate packages.
+| Package | Main modules | Responsibility |
+|---|---|---|
+| `agents/` | `base.py`, `capabilities.py`, `context.py`, `exceptions.py`, `lifecycle.py`, `result.py` | Agent contract, capabilities, context, lifecycle, results |
+| `audit/` | `__init__.py` | Reserved package; scaffolding only |
+| `backends/` | `base.py`, `ollama.py` | Backend contract and Ollama integration |
+| `config/` | `settings.py`, configuration data | Application settings and validation |
+| `execution/` | `manager.py`, `policy.py`, `report.py` | Batch execution, policy, records, reports |
+| `memory/` | `__init__.py` | Reserved package; scaffolding only |
+| `models/` | `catalog.py`, `metadata.py` | Model discovery and normalized metadata |
+| `monitoring/` | `api.py`, `diagnostics.py`, `gpu.py`, `gpu_intel.py`, `health.py`, `numa.py`, `resources.py`, `serialization.py`, `service.py`, `system.py` | Hardware monitoring, health, diagnostics, API |
+| `orchestrator/` | `engine.py`, `exceptions.py`, `registry.py` | Agent factory registry and dispatch |
+| `security/` | `__init__.py` | Reserved package; scaffolding only |
+| `validation/` | `__init__.py` | Reserved package; scaffolding only |
 
-The following tree describes the architectural organization. Some directories currently contain only initial scaffolding.
+The packages `audit`, `memory`, `security`, and `validation` are structural foundations, not complete functional subsystems. The repository does not currently contain a complete graphical user interface.
 
-```text
-src/meltymon_ai_os/
-|
-+-- agents/
-|   +-- __init__.py
-|
-+-- audit/
-|   +-- __init__.py
-|
-+-- backends/
-|   +-- ollama.py
-|
-+-- config/
-|   +-- settings.py
-|
-+-- memory/
-|   +-- __init__.py
-|
-+-- models/
-|   +-- catalog.py
-|   +-- metadata.py
-|
-+-- monitoring/
-|   +-- api.py
-|   +-- diagnostics.py
-|   +-- gpu.py
-|   +-- health.py
-|   +-- numa.py
-|   +-- resources.py
-|   +-- serialization.py
-|   +-- service.py
-|   +-- system.py
-|
-+-- orchestrator/
-|   +-- __init__.py
-|
-+-- security/
-|   +-- __init__.py
-|
-+-- validation/
-|   +-- __init__.py
-```
-
-The actual source tree may evolve as new components are introduced.
-
----
-
-## 4. Configuration Layer
+## 4. Configuration layer
 
 **Module:** `config/settings.py`
 
-The configuration layer provides centralized application settings.
+Configuration is centralized and validated using YAML settings, environment-variable overrides, and Pydantic models.
 
-It currently uses:
-
-- YAML configuration
-- Environment variable overrides
-- Pydantic validation
-
-### Current settings
-
-The configuration includes settings for:
-
-- Ollama connection URL
-- Ollama request timeout
-- Default model selection
-
-### Environment variables
-
-The following environment variables are supported:
+The documented environment variables are:
 
 | Variable | Purpose |
 |---|---|
 | `MELTYMON_OLLAMA_BASE_URL` | Ollama API endpoint |
-| `MELTYMON_OLLAMA_TIMEOUT` | HTTP timeout |
-| `MELTYMON_DEFAULT_MODEL` | Default model |
+| `MELTYMON_OLLAMA_TIMEOUT` | Ollama request timeout |
+| `MELTYMON_DEFAULT_MODEL` | Default model selection |
 
-### Validation
+Values are validated before use. For example, the Ollama endpoint must use a supported HTTP scheme and valid host, and timeout values must be positive and within the configured limit. Components should consume centralized settings rather than defining competing configuration mechanisms.
 
-Configuration values are validated before being used.
+## 5. AI backend and model management
 
-For example, the Ollama URL must use a supported HTTP scheme and a valid host.
+### 5.1 Backend layer
 
-Timeout values must be greater than zero and must not exceed the configured upper limit.
+**Modules:** `backends/base.py`, `backends/ollama.py`
 
-### Architectural role
+The backend layer separates provider-specific communication from the rest of the application. Ollama is the currently implemented provider. Its asynchronous operations include service availability checks, model listing, model detail retrieval, and text generation. HTTP communication uses configurable timeouts; generation currently uses the non-streaming endpoint.
 
-The configuration layer centralizes application settings and prevents individual components from implementing their own configuration mechanisms.
+Additional providers are possible through the backend abstraction but are not currently implemented.
 
----
+### 5.2 Model catalog
 
-## 5. AI Backend Layer
+**Modules:** `models/catalog.py`, `models/metadata.py`
 
-**Module:** `backends/ollama.py`
+The model management layer retrieves model information from a backend, refreshes the local catalog, normalizes provider data, exposes individual entries, and retrieves extended model details.
 
-The backend layer provides a consistent interface for communicating with AI inference services.
+Normalized metadata can represent model name, backend, family, parameter size, quantization, disk size, modification time, digest, context length, capabilities, and provider-specific information. Convenience capability information includes areas such as vision, tool use, and thinking when the provider exposes sufficient data.
 
-The initial implementation integrates Ollama.
+The catalog provides a provider-independent representation. It does not yet perform automatic model selection based on task requirements or hardware capacity.
 
-### Ollama backend
+## 6. Hardware monitoring and system insight
 
-The current implementation supports asynchronous operations for:
+The `monitoring/` package collects system and device information and turns it into snapshots that can be evaluated and serialized.
 
-- Checking service availability
-- Listing installed models
-- Retrieving model information
-- Generating text
-
-Communication uses HTTP requests with configurable timeouts.
-
-Text generation currently uses the non-streaming Ollama generation endpoint.
-
-### Backend abstraction
-
-The backend architecture is intended to separate provider-specific communication from model management and orchestration.
-
-This makes future integrations possible without requiring the rest of the platform to depend directly on Ollama-specific API responses.
-
-### Current limitation
-
-Ollama is the currently implemented backend.
-
-Additional providers are planned but not yet implemented.
-
----
-
-## 6. Model Management
-
-**Modules:**
-
-- `models/catalog.py`
-- `models/metadata.py`
-
-The model management layer provides a normalized representation of models available through supported backends.
-
-### Model catalog
-
-The ModelCatalog:
-
-- Retrieves models from a backend
-- Refreshes the local catalog
-- Normalizes model information
-- Provides access to individual model entries
-- Retrieves extended model details
-
-### Model metadata
-
-Model metadata can contain:
-
-- Name
-- Backend
-- Model family
-- Parameter size
-- Quantization
-- Model size
-- Modification timestamp
-- Digest
-- Context length
-- Capabilities
-- Additional model information
-
-### Capability information
-
-The metadata model provides convenience properties for capabilities such as:
-
-- Vision
-- Tool usage
-- Thinking
-
-### Architectural role
-
-The model catalog provides a provider-independent model representation.
-
-Future orchestration components can use this information to select suitable models based on task requirements and hardware resources.
-
----
-
-## 7. Hardware Monitoring Layer
-
-**Package:** `monitoring/`
-
-The monitoring layer collects system and hardware information.
-
-It is designed to support different monitoring providers through separate components and interfaces.
-
-### 7.1 CPU and memory
+### 6.1 CPU and memory
 
 **Module:** `monitoring/resources.py`
 
-The resource monitoring component collects information about CPU and system memory.
+Collects CPU and system-memory information to describe available resources and current utilization.
 
-The collected information provides a basic overview of available system resources.
-
-### 7.2 NUMA
+### 6.2 NUMA
 
 **Module:** `monitoring/numa.py`
 
-The NUMA component discovers the system's NUMA topology and collects per-node memory statistics.
+Discovers NUMA topology and collects per-node information such as CPU lists, memory statistics, and topology distances. This is relevant to multi-socket and large-memory systems.
 
-This is particularly relevant for multi-socket systems and large memory configurations.
+### 6.3 GPU monitoring
 
-### 7.3 GPU monitoring
+**Modules:** `monitoring/gpu.py`, `monitoring/gpu_intel.py`
 
-**Module:** `monitoring/gpu.py`
+The GPU architecture separates device snapshots, monitoring interfaces, discovery, telemetry collection, and error reporting. Devices are represented individually so that a multi-GPU host is not reduced to a single aggregate device.
 
-The GPU monitoring component defines a generic architecture for GPU discovery and telemetry collection.
+The currently implemented vendor-specific backend is Intel, using Linux sysfs interfaces. Depending on hardware and driver support, telemetry can include temperature, power consumption or limits, energy, and frequency. Not every device exposes every field. NVIDIA and AMD backends are future work.
 
-Its responsibilities include:
+Monitoring state has deliberate semantics: unavailable monitoring information, a successful scan with no detected devices, and a non-empty set of device snapshots are distinct outcomes. Callers must not collapse these states into one generic empty value.
 
-- GPU information structures
-- Monitoring snapshots
-- Backend interfaces
-- Device discovery
-- Telemetry collection
-- Error tracking
-
-The GPU monitor can work with multiple monitoring backends.
-
-The current implementation includes an Intel GPU backend.
-
-### 7.4 Intel GPU backend
-
-The Intel implementation obtains available telemetry through Linux sysfs interfaces.
-
-Depending on the device and driver, collected information includes:
-
-- Temperature
-- Power consumption
-- Power limits
-- Energy information
-- Frequency information
-
-Not all telemetry fields are available on every Intel GPU.
-
-### 7.5 Multiple GPUs
-
-GPU monitoring is designed around individual device snapshots.
-
-This avoids treating a system with several GPUs as though it had only one GPU.
-
-Individual devices can be monitored independently.
-
-Backend and device telemetry failures are tracked separately wherever possible.
-
-### Current limitations
-
-- Intel is the currently implemented vendor-specific GPU backend.
-- NVIDIA support is planned.
-- AMD support is planned.
-- Available telemetry depends on hardware and driver support.
-- Generic interfaces exist for extending the implementation.
-
----
-
-## 8. System Monitoring Orchestration
-
-**Module:** `monitoring/system.py`
-
-The SystemMonitor coordinates the individual monitoring components.
-
-It collects information from the available resource monitors and combines the results into a unified system snapshot.
-
-### Responsibilities
-
-- Coordinate monitoring components
-- Collect system information
-- Execute independent collection operations concurrently where appropriate
-- Combine component results
-- Preserve monitoring errors
-
-### System snapshot
-
-The SystemSnapshot represents the collected system state.
-
-It brings together information from CPU, memory, NUMA, and GPU monitoring.
-
-### GPU collection semantics
-
-The GPU field distinguishes three important states:
-
-| Value | Meaning |
-|---|---|
-| `None` | GPU monitoring information is unavailable |
-| `()` | Monitoring completed successfully, but no GPUs were found |
-| Non-empty tuple | One or more GPU snapshots were collected |
-
-These states must remain distinct.
-
-A successful scan that finds no GPUs is not equivalent to a failed or unavailable monitoring operation.
-
----
-
-## 9. Health Evaluation
+### 6.4 Health evaluation
 
 **Module:** `monitoring/health.py`
 
-The HealthEvaluator analyzes monitoring information and evaluates it against configurable thresholds.
+Health evaluation interprets available monitoring data using configurable thresholds and device-specific checks. Missing telemetry must not be mistaken for a healthy measurement. The evaluator reports what can be established from available data; it does not repair hardware or automatically optimize workloads.
 
-### Responsibilities
-
-- Evaluate resource conditions
-- Apply health thresholds
-- Identify abnormal conditions
-- Support device-specific GPU checks
-- Handle missing monitoring information
-
-### GPU health checks
-
-Individual GPUs can be evaluated separately.
-
-Device-specific identifiers allow health results to be associated with the correct hardware.
-
-### Architectural separation
-
-The health evaluator does not perform hardware telemetry collection itself.
-
-It consumes monitoring results and evaluates their meaning.
-
-This separation keeps monitoring and health evaluation independent.
-
----
-
-## 10. Diagnostic Engine
+### 6.5 Diagnostics
 
 **Module:** `monitoring/diagnostics.py`
 
-The DiagnosticEngine applies rules to available monitoring and health information.
+The diagnostic engine applies rules to monitoring and health information and produces structured findings with severity classification. It is rule-based rather than an autonomous root-cause analysis engine. Recommendations and findings depend on the information actually available to the rules.
 
-It produces structured diagnostic findings.
+### 6.6 Monitoring integration and public API
 
-### Responsibilities
+**Modules:** `monitoring/system.py`, `monitoring/service.py`, `monitoring/api.py`, `monitoring/serialization.py`
 
-- Evaluate diagnostic rules
-- Classify severity
-- Generate structured findings
-- Identify affected resources
-- Handle missing telemetry
-- Preserve relevant backend and device error information
+The system monitor coordinates collection. The monitoring service combines snapshots, health evaluation, and diagnostic results. The public API exposes monitoring information, while serialization converts supported structures into dictionaries and JSON-compatible data.
 
-### Device-specific diagnostics
+These modules provide a monitoring interface that can be consumed by future orchestration and user-interface work. A complete live feedback loop from monitoring into agent scheduling is not yet implemented.
 
-Individual GPU devices can produce their own diagnostic findings.
+## 7. Agent Runtime
 
-This allows the platform to identify which device is affected rather than reporting only a generic GPU problem.
+The Agent Runtime defines the contract and lifecycle for independently executable agents. It is implemented as a reusable runtime foundation; it does not imply that agents are already connected to a model or granted system permissions.
 
-### Relationship to health evaluation
+### 7.1 Agent base contract
 
-Health evaluation determines whether defined conditions are satisfied.
+**Modules:** `agents/base.py`, `agents/lifecycle.py`
 
-Diagnostics provide more detailed findings about detected problems.
+The base agent defines the common execution contract and lifecycle hooks. Lifecycle state transitions are explicit and tracked. Agent instances are single-use: an instance is not intended to be restarted and reused for a later execution. The orchestrator obtains a fresh instance from a registered factory for each dispatch.
 
-Both components are separate but complementary.
+### 7.2 Context and correlation
 
----
+**Module:** `agents/context.py`
 
-## 11. Monitoring Service
+An immutable execution context carries the data required for an agent invocation, including correlation information. Correlation identifiers allow related work and results to be associated without relying on mutable global state.
 
-**Module:** `monitoring/service.py`
+### 7.3 Capabilities
 
-The MonitoringService combines the monitoring, health evaluation, and diagnostic components.
+**Module:** `agents/capabilities.py`
 
-It provides a higher-level interface for retrieving a monitoring result.
+Capabilities describe declared agent functionality. They are descriptive declarations and checks, not operating-system permissions, authorization grants, or security enforcement. A capability declaration must never be interpreted as proof that an action is authorized.
 
-### Responsibilities
+### 7.4 Results and exceptions
 
-- Trigger system monitoring
-- Evaluate system health
-- Run diagnostic rules
-- Aggregate the results
-- Return a structured monitoring result
+**Modules:** `agents/result.py`, `agents/exceptions.py`
 
-### Architectural role
+Agents return structured, immutable results. The exception hierarchy gives the runtime and callers explicit failure categories. An agent-level timeout is represented as a failed agent result rather than being treated as a successful completion.
 
-The service provides a convenient integration point for future platform components.
+## 8. Execution layer
 
-Consumers do not need to coordinate the individual monitoring and diagnostic components themselves.
+**Modules:** `execution/manager.py`, `execution/policy.py`, `execution/report.py`
 
----
+The execution layer runs batches of agent contexts under explicit policies.
 
-## 12. Monitoring API and Serialization
+Implemented controls include:
 
-**Modules:**
+- A semaphore-backed maximum concurrency limit.
+- Batch-level timeout handling.
+- Continue-on-error and fail-fast policies.
+- Cooperative cancellation handling.
+- Immutable execution records and aggregate reports.
+- Preservation of input order in the resulting report.
 
-- `monitoring/api.py`
-- `monitoring/serialization.py`
+Fail-fast prevents tasks that have not started from being launched after a failure is observed. It does not automatically terminate work that is already running. Cancellation of running asynchronous work is cooperative and depends on the task responding to cancellation.
 
-The API and serialization layer make monitoring information available to other components and external consumers.
+Execution records distinguish `SUCCESS`, `FAILURE`, `ERROR`, and `CANCELLED`. These states should remain distinct: a valid agent-level failure is not identical to an unexpected runtime error, and neither is identical to cancellation.
 
-### Monitoring API
+## 9. Orchestration layer
 
-The MonitoringAPI provides access to monitoring information through a public interface.
+**Modules:** `orchestrator/engine.py`, `orchestrator/registry.py`, `orchestrator/exceptions.py`
 
-It supports retrieving monitoring data in structured representations.
+The registry stores agent factory callables rather than long-lived agent instances. The orchestrator resolves a registered factory, creates a fresh agent, validates the created instance, and dispatches the supplied context.
 
-### Serialization
+Factory validation checks relevant properties such as the returned type, agent identity, and initial lifecycle state. After execution, the orchestrator validates the result contract, including result type, agent identity, and correlation identifier.
 
-The serialization layer converts supported Python objects into JSON-compatible data.
+This is initial orchestration infrastructure. It is not yet a task planner or multi-agent reasoning engine. It does not automatically select models, assign resources, enforce permissions, or provide persistent execution history.
 
-Supported types include:
-
-- Dataclasses
-- Date and datetime values
-- Enumerations
-- Paths
-- Dictionaries
-- Lists
-- Tuples
-
-Unsupported values and invalid structures are rejected rather than silently converted into potentially misleading output.
-
-### Architectural role
-
-This layer provides a common representation for future dashboards, integrations, agents, and external applications.
-
----
-
-## 13. Current Monitoring Data Flow
-
-The current monitoring flow can be summarized as follows:
+### 9.1 Execution flow
 
 ```text
-        Hardware and Operating System
-                     |
-          +----------+----------+
-          |          |          |
-         CPU        NUMA        GPU
-          |          |          |
-          +----------+----------+
-                     |
-               SystemMonitor
-                     |
-               SystemSnapshot
-                     |
-          +----------+----------+
-          |                     |
-     HealthEvaluator      DiagnosticEngine
-          |                     |
-          +----------+----------+
-                     |
-              MonitoringService
-                     |
-               MonitoringResult
-                     |
-              MonitoringAPI
-                     |
-                Serializer
-                     |
-               JSON / Dict
+Caller
+  |
+  v
+Orchestrator
+  |
+  +--> Agent Registry
+  |       |
+  |       +--> registered factory
+  |                 |
+  |                 v
+  |           fresh Agent instance
+  |
+  +--> validate instance
+  |
+  +--> execute with Agent Context
+  |       |
+  |       +--> lifecycle hooks
+  |       +--> structured Agent Result
+  |
+  +--> validate result contract
+  |
+  v
+Execution Record / Aggregate Report
 ```
 
-The diagram describes the implemented monitoring architecture.
+For batch work, the Execution Manager applies concurrency and failure policies around individual invocations and creates the aggregate report.
+
+## 10. Security and trust boundaries
+
+Security is an architectural requirement, but the current repository does not yet implement a complete authorization subsystem.
+
+The following concepts must remain separate:
+
+| Concept | Meaning | Current status |
+|---|---|---|
+| Capability | What an agent declares it can do | Implemented as agent metadata/checks |
+| Execution policy | How a batch is scheduled and how failures are handled | Implemented in the execution layer |
+| Permission | Whether an identity is allowed to perform an action | Not implemented as a complete system |
+| Approval | Whether a sensitive action requires explicit human authorization | Not implemented |
+| Audit record | Durable evidence of actions and decisions | Audit package is scaffolding only |
+
+A future security design must define identity, authorization decisions, approval boundaries, sensitive-operation handling, and audit integrity. Until then, capability declarations and execution policies must not be presented as security controls.
+
+## 11. Current integration boundaries and limitations
+
+The current codebase provides several functional subsystems, but their existence does not mean they are fully integrated.
+
+Not currently implemented as complete end-to-end functionality:
+
+- Automatic invocation of Ollama/model generation from the Agent Runtime.
+- Automatic model selection based on agent requirements or model metadata.
+- Resource-aware agent scheduling using live monitoring data.
+- A complete monitoring-to-orchestrator feedback loop.
+- Agent-to-agent communication and multi-agent planning.
+- Persistent agent memory, execution history, and recovery.
+- A complete permission and approval enforcement system.
+- Durable audit logging.
+- A graphical management interface.
+
+These are explicit development boundaries, not hidden assumptions. Future implementation should connect the existing contracts incrementally and add integration tests that demonstrate the complete behavior.
+
+## 12. Testing and quality
+
+The architecture is designed to support isolated, deterministic testing. Hardware-facing code should be tested with controlled telemetry and simulated interfaces; backend communication should be tested with mocked HTTP responses where a live service is not required. Asynchronous execution tests should cover successful execution, failures, timeout behavior, fail-fast semantics, and cancellation.
+
+The repository's [Testing Strategy](TESTING.md) documents the test organization, commands, isolation approach, and recorded test baseline. The [Development History](DEVELOPMENT.md) records completed implementation milestones. The [Roadmap](../ROADMAP.md) describes future work.
 
 ---
 
-## 14. Error Handling and Fault Isolation
-
-Reliability is an important architectural requirement.
-
-Monitoring operations may fail for several reasons:
-
-- Hardware is unavailable
-- A driver does not expose a telemetry field
-- A device disappears
-- A backend encounters an error
-- A system interface cannot be accessed
-- A monitoring component fails during collection
-
-The architecture aims to isolate these failures.
-
-### Component isolation
-
-An error in one monitoring component should not automatically prevent unrelated components from collecting information.
-
-### Device isolation
-
-A failure affecting one GPU should not unnecessarily prevent monitoring of other GPUs.
-
-### Error preservation
-
-Errors are tracked so that health evaluation and diagnostics can distinguish missing information from successfully collected values.
-
-### Explicit unavailable states
-
-Unavailable telemetry should not be interpreted as a healthy measurement.
-
----
-
-## 15. Testing Architecture
-
-The project uses pytest to validate its components.
-
-The architecture is designed to support hardware-independent tests.
-
-Monitoring interfaces can be tested with controlled inputs and simulated hardware information.
-
-This allows tests to validate:
-
-- Device discovery
-- Telemetry parsing
-- Multi-GPU behavior
-- Monitoring errors
-- Health evaluation
-- Diagnostic rules
-- Serialization
-- Service integration
-
-The test suite is maintained separately from production modules.
-
-See [Testing Strategy](TESTING.md) for details.
-
----
-
-## 16. Planned Architectural Components
-
-The following areas are part of the long-term architecture but are not yet implemented as functional subsystems.
-
-### Agents
-
-The planned agent layer will provide independent AI agents with defined responsibilities, capabilities, and execution contexts.
-
-### Orchestration
-
-The orchestration layer will coordinate tasks, agents, models, and hardware resources.
-
-### Memory
-
-The memory subsystem will provide persistent context and retrieval capabilities.
-
-### Security
-
-The security layer will establish permissions, execution boundaries, and auditing.
-
-### User interface
-
-Future management interfaces will expose model management, monitoring, diagnostics, and orchestration functionality.
-
-These components will build on the current foundation as development progresses.
-
----
-
-## 17. Related Documentation
-
-- [Project Overview](../README.md)
-- [Development History](DEVELOPMENT.md)
-- [Roadmap](../ROADMAP.md)
-- [Changelog](../CHANGELOG.md)
-- [Testing Strategy](TESTING.md)
-- [Architecture Decision Records](adr/)
-- [Contributing](../CONTRIBUTING.md)
-- [License](../LICENSE)
-
----
-
-## Project Status
-
-MELTYMON AI OS currently provides an initial implementation of local AI integration, model management, hardware monitoring, system health evaluation, diagnostics, and monitoring APIs.
-
-The architecture is intentionally designed to support future expansion without turning the project into a tightly coupled monolithic application.
+**Architecture status:** This document describes the implementation boundary at Milestone 10. It is intended to be updated alongside code changes; planned functionality must remain clearly labeled until it is implemented and tested.
