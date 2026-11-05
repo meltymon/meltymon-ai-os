@@ -542,11 +542,9 @@ Temporary directories and controlled test data help ensure that tests remain rep
 
 The complete test suite is executed after relevant implementation changes.
 
-The current documented baseline is:
+The earlier documented baseline from November 2, 2026 was **133 passing tests**. Following Milestone 10, the November 5, 2026 review snapshot reports **491 passing tests**, 96.79% statement coverage, and 91.50% branch coverage, with 16 review checks passed and none failed or skipped.
 
-**133 passing tests**
-
-This is a snapshot of the test suite at the time of writing, not a guarantee that future changes will preserve the same result.
+The 133-test figure is retained as a historical baseline; the 491-test figure is the later documented snapshot. Neither is a guarantee of future results.
 
 ### Quality checks
 
