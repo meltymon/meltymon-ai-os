@@ -65,8 +65,23 @@ The current test suite is organized by subsystem.
 | `test_monitoring_service.py` | Monitoring service |
 | `test_monitoring_api.py` | Public monitoring API |
 | `test_serialization.py` | Data serialization |
+| `test_agent_base.py` | Agent base behavior and execution lifecycle |
+| `test_agent_capabilities.py` | Capability definitions and checks |
+| `test_agent_context.py` | Immutable execution context |
+| `test_agent_exceptions.py` | Agent exception hierarchy |
+| `test_agent_lifecycle.py` | Lifecycle state transitions |
+| `test_agent_result.py` | Structured immutable agent results |
+| `test_execution_manager.py` | Concurrent execution, fail-fast, timeout, and cancellation behavior |
+| `test_execution_policy.py` | Execution policy validation |
+| `test_execution_report.py` | Execution records and aggregate reports |
+| `test_orchestrator.py` | Agent dispatch and result validation |
+| `test_orchestrator_registry.py` | Factory registration and agent creation |
+| `test_agent_package.py` | Agent package public exports |
+| `test_execution_package.py` | Execution package public exports |
+| `test_orchestrator_package.py` | Orchestrator package public exports |
+| `test_review.py` | Automated review workflow behavior |
 
-The test suite may be extended as new modules and capabilities are introduced.
+The test suite may be extended as new modules and capabilities are introduced. The current suite includes tests for the Agent Runtime, Execution Layer, Orchestrator, and review workflow introduced during Milestone 10.
 
 ---
 
@@ -255,21 +270,36 @@ This helps identify whitespace errors and related patch problems before changes 
 
 The test suite and patch checks should be run after relevant implementation changes.
 
+The repository also provides a consolidated review workflow:
+
+```fish
+python scripts/review.py
+```
+
+To include the dependency vulnerability audit:
+
+```fish
+python scripts/review.py --audit-dependencies
+```
+
+The review workflow includes repository and patch integrity checks, Ruff linting and formatting, Mypy, pytest with statement and branch coverage, Bandit, optional pip-audit, package building, wheel import smoke testing, and Twine metadata validation. Individual checks depend on the installed development tools and the selected review options.
+
 ---
 
 ## 12. Current Test Baseline
 
-As of November 2, 2026, the documented test baseline is:
+The earlier baseline from November 2, 2026 was 133 passing tests. After the Agent Runtime, Execution Layer, Orchestrator, and review workflow were added, the Milestone 10 review snapshot from November 5, 2026 reported:
 
-<escape>133</escape> tests passed.
+| Metric | Result |
+|---|---:|
+| Tests passed | 491 |
+| Statement coverage | 96.79% |
+| Branch coverage | 91.50% |
+| Review checks passed | 16 |
+| Failed review checks | 0 |
+| Skipped review checks | 0 |
 
-The observed execution time was approximately 0.6 seconds in the development environment.
-
-This is a historical snapshot, not a fixed expected test count.
-
-The number of tests will change as functionality is added and existing tests are extended.
-
-Always use the actual output of the current test run as the authoritative result.
+These are historical results from the documented review run, not a fixed expected test count or a guarantee of future results. Always use the actual output of the current test and review run as authoritative.
 
 ---
 
@@ -301,7 +331,7 @@ Planned improvements include:
 - More failure and recovery scenarios
 - Additional backend compatibility tests
 - Extended hardware simulation
-- Automated CI testing
+- Expanded CI and end-to-end integration testing
 - Test coverage tracking
 
 These improvements will be introduced as the platform grows.

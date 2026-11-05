@@ -34,9 +34,10 @@ The project prioritizes transparency, modularity, reliability, and user control.
 | Health evaluation | Implemented foundation |
 | Diagnostic engine | Implemented foundation |
 | Monitoring service and API | Implemented foundation |
-| Automated testing | Active development |
-| Agent architecture | Planned |
-| AI orchestration | Planned |
+| Automated testing | Expanded suite and automated review workflow implemented; ongoing |
+| Agent architecture | Initial implementation |
+| Execution layer | Initial implementation |
+| Agent orchestration | Initial implementation; integration work remains |
 | Persistent memory | Planned |
 | Security and auditing | Planned |
 | User interface | Planned |
@@ -167,32 +168,47 @@ The project prioritizes transparency, modularity, reliability, and user control.
 
 **Goal:** Introduce independent AI agents with defined responsibilities and capabilities.
 
-### Planned
+### Implemented
 
-- [ ] Agent base interfaces
-- [ ] Agent lifecycle management
-- [ ] Agent capability definitions
-- [ ] Agent execution context
-- [ ] Agent communication interfaces
-- [ ] Agent error handling
-- [ ] Agent resource awareness
+- [x] Abstract agent base class
+- [x] Agent lifecycle state machine and transition history
+- [x] Immutable agent capabilities and capability checks
+- [x] Immutable execution context and correlation identifiers
+- [x] Structured agent results and exception hierarchy
+- [x] Agent initialization and execution hooks
+- [x] Per-agent timeout and cooperative cancellation handling
+
+### Future work
+
+- [ ] Agent-to-agent communication interfaces
+- [ ] Resource awareness within agent execution
+- [ ] Authorization and approval enforcement for agent actions
 
 ---
 
 ## Phase 7 – AI Orchestration
 
-**Goal:** Coordinate models, agents, and available hardware resources.
+**Goal:** Establish the initial execution and coordination foundation for registered agents.
 
-### Planned
+### Implemented
 
-- [ ] Task planning
-- [ ] Task execution management
-- [ ] Agent coordination
-- [ ] Model selection
-- [ ] Resource-aware scheduling
-- [ ] Workload management
-- [ ] Execution monitoring
-- [ ] Task recovery and error handling
+- [x] Factory-based agent registry
+- [x] Agent factory validation and lifecycle-state validation
+- [x] Asynchronous orchestrator dispatch
+- [x] Execution manager for batches of agent contexts
+- [x] Configurable maximum concurrency
+- [x] Continue-on-error and fail-fast policies
+- [x] Batch timeout and cooperative cancellation handling
+- [x] Immutable execution records and aggregate reports
+
+### Future work
+
+- [ ] Task planning and multi-agent coordination strategies
+- [ ] Automatic model selection and assignment
+- [ ] Resource-aware scheduling and workload management
+- [ ] Monitoring integration and execution telemetry
+- [ ] Persistent execution history and recovery workflows
+- [ ] End-to-end integration across agents, Ollama, model catalog, and monitoring
 
 ---
 
@@ -215,6 +231,8 @@ The project prioritizes transparency, modularity, reliability, and user control.
 ## Phase 9 – Security and Auditing
 
 **Goal:** Establish security boundaries and transparent execution.
+
+The Agent Runtime's capability declarations and the Execution Layer's scheduling policies are not authorization controls. A complete permission and approval enforcement system, together with durable audit logging, remains planned.
 
 ### Planned
 
@@ -286,6 +304,7 @@ The current implementation status is documented in:
 - [Development History](docs/DEVELOPMENT.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Testing Strategy](docs/TESTING.md)
+- [Project TODO](TODO.md)
 
 Detailed technical milestones and architecture decisions will be documented separately.
 
@@ -295,6 +314,6 @@ Detailed technical milestones and architecture decisions will be documented sepa
 
 MELTYMON AI OS is under active development.
 
-The current development focus is the stabilization and expansion of the core infrastructure, AI backend integration, and hardware monitoring foundation.
+The current development focus is the stabilization and integration of the existing core infrastructure, AI backend, hardware monitoring, Agent Runtime, Execution Layer, and initial orchestration foundations.
 
-Agent architecture, orchestration, persistent memory, security, and user interfaces are planned for subsequent development phases.
+Persistent memory, security enforcement, resource-aware model selection, complete end-to-end integration, and user interfaces remain future development areas.

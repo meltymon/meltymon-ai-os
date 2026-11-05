@@ -90,9 +90,9 @@ Selected as the architectural foundation for the current development stage.
 
 ## Implementation Status
 
-The current source tree already separates configuration, backends, models, and monitoring into independent packages.
+At the time this decision was recorded on November 2, 2026, the source tree separated configuration, backends, models, and monitoring into independent packages. Agent, memory, orchestration, security, and auditing areas were then represented primarily by architectural scaffolding.
 
-Agent, memory, orchestration, security, and auditing packages currently provide architectural scaffolding rather than complete functional subsystems.
+Subsequent development changed that status: Milestone 10 (November 5, 2026) introduced functional initial implementations for the Agent Runtime, Execution Layer, and agent orchestration. Memory, security, and auditing remain structural foundations. See the [Milestone 10 record](../milestones/10-major-update-agent-runtime-bugfixing-quality-review.md) and current architecture documentation for the later implementation state.
 
 ## Related Documentation
 
