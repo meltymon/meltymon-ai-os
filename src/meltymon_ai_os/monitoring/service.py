@@ -1,4 +1,3 @@
-
 """Integrated monitoring service for MELTYMON AI OS."""
 
 from dataclasses import dataclass
@@ -42,20 +41,14 @@ class MonitoringService:
     ) -> None:
         """Initialize the service with optional injectable components."""
 
-        self.monitor = (
-            monitor if monitor is not None else SystemMonitor()
-        )
+        self.monitor = monitor if monitor is not None else SystemMonitor()
 
         self.health_evaluator = (
-            health_evaluator
-            if health_evaluator is not None
-            else HealthEvaluator()
+            health_evaluator if health_evaluator is not None else HealthEvaluator()
         )
 
         self.diagnostic_engine = (
-            diagnostic_engine
-            if diagnostic_engine is not None
-            else DiagnosticEngine()
+            diagnostic_engine if diagnostic_engine is not None else DiagnosticEngine()
         )
 
     async def collect(self) -> MonitoringResult:
@@ -68,9 +61,7 @@ class MonitoringService:
         health_report = self.health_evaluator.evaluate(snapshot)
 
         # 3. Generate diagnostic findings from the health report.
-        diagnostic_report = self.diagnostic_engine.diagnose(
-            health_report
-        )
+        diagnostic_report = self.diagnostic_engine.diagnose(health_report)
 
         # 4. Return all results as one immutable object.
         return MonitoringResult(

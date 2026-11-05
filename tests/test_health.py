@@ -1,6 +1,6 @@
 """Tests for MELTYMON AI OS health evaluation."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -18,7 +18,6 @@ from meltymon_ai_os.monitoring.numa import (
 from meltymon_ai_os.monitoring.resources import ResourceSnapshot
 from meltymon_ai_os.monitoring.system import SystemSnapshot
 
-
 _DEFAULT_GPU = object()
 
 
@@ -33,7 +32,7 @@ def create_gpu_snapshot(
     """Create a representative GPU snapshot."""
 
     return GPUSnapshot(
-        timestamp=datetime(2026, 11, 2, tzinfo=timezone.utc),
+        timestamp=datetime(2026, 11, 2, tzinfo=UTC),
         gpu=GPUInfo(
             name=name,
             vendor="Intel",
@@ -66,7 +65,7 @@ def create_snapshot(
         2026,
         11,
         2,
-        tzinfo=timezone.utc,
+        tzinfo=UTC,
     )
 
     resources = ResourceSnapshot(
@@ -121,9 +120,7 @@ def create_snapshot(
 
 def get_check(report, name):
     """Return one health check by its exact name."""
-    return next(
-        check for check in report.checks if check.name == name
-    )
+    return next(check for check in report.checks if check.name == name)
 
 
 def test_healthy_system():
@@ -287,8 +284,7 @@ def test_missing_resources_are_degraded():
     report = HealthEvaluator().evaluate(snapshot)
 
     assert any(
-        check.name == "resources"
-        and check.status is HealthStatus.DEGRADED
+        check.name == "resources" and check.status is HealthStatus.DEGRADED
         for check in report.checks
     )
 
@@ -399,10 +395,7 @@ def test_no_detected_gpu_is_not_an_error():
     report = HealthEvaluator().evaluate(snapshot)
 
     assert report.status is HealthStatus.HEALTHY
-    assert not any(
-        check.name.startswith("gpu.")
-        for check in report.checks
-    )
+    assert not any(check.name.startswith("gpu.") for check in report.checks)
 
 
 def test_multiple_gpus_are_evaluated_independently():
@@ -477,25 +470,37 @@ def test_missing_measurement_on_one_gpu_does_not_hide_another():
 
     report = HealthEvaluator().evaluate(snapshot)
 
-    assert get_check(
-        report,
-        "gpu.0000:01:00.0.temperature",
-    ).status is HealthStatus.DEGRADED
+    assert (
+        get_check(
+            report,
+            "gpu.0000:01:00.0.temperature",
+        ).status
+        is HealthStatus.DEGRADED
+    )
 
-    assert get_check(
-        report,
-        "gpu.0000:01:00.0.memory",
-    ).status is HealthStatus.HEALTHY
+    assert (
+        get_check(
+            report,
+            "gpu.0000:01:00.0.memory",
+        ).status
+        is HealthStatus.HEALTHY
+    )
 
-    assert get_check(
-        report,
-        "gpu.0000:02:00.0.temperature",
-    ).status is HealthStatus.HEALTHY
+    assert (
+        get_check(
+            report,
+            "gpu.0000:02:00.0.temperature",
+        ).status
+        is HealthStatus.HEALTHY
+    )
 
-    assert get_check(
-        report,
-        "gpu.0000:02:00.0.memory",
-    ).status is HealthStatus.HEALTHY
+    assert (
+        get_check(
+            report,
+            "gpu.0000:02:00.0.memory",
+        ).status
+        is HealthStatus.HEALTHY
+    )
 
 
 def test_gpu_temperature_thresholds_can_exceed_100_degrees():

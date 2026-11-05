@@ -1,6 +1,6 @@
 import inspect
-from datetime import datetime, timezone
-from unittest.mock import patch, MagicMock
+from datetime import UTC, datetime
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -12,7 +12,7 @@ from meltymon_ai_os.monitoring.resources import (
 
 def test_resource_snapshot_memory_conversion():
     snapshot = ResourceSnapshot(
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         cpu_percent=25.0,
         memory_percent=50.0,
         memory_total_bytes=16 * 1024**3,
@@ -54,7 +54,7 @@ async def test_collect_returns_resource_snapshot():
     assert snapshot.memory_available_bytes == 8 * 1024**3
     assert snapshot.memory_used_bytes == 8 * 1024**3
     assert snapshot.cpu_count >= 1
-    assert snapshot.timestamp.tzinfo == timezone.utc
+    assert snapshot.timestamp.tzinfo == UTC
 
 
 @pytest.mark.asyncio

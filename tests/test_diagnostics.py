@@ -1,7 +1,6 @@
-
 """Tests for MELTYMON AI OS diagnostic engine."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -15,8 +14,7 @@ from meltymon_ai_os.monitoring.health import (
     HealthStatus,
 )
 
-
-_TIMESTAMP = datetime(2026, 11, 2, tzinfo=timezone.utc)
+_TIMESTAMP = datetime(2026, 11, 2, tzinfo=UTC)
 
 
 def create_check(
@@ -24,7 +22,7 @@ def create_check(
     status: HealthStatus,
     *,
     message: str = "Test measurement",
-    value: float | int | str | None = 50.0,
+    value: float | str | None = 50.0,
     unit: str | None = "%",
     warning: float | None = 80.0,
     critical: float | None = 95.0,
@@ -45,16 +43,10 @@ def create_report(*checks: HealthCheck) -> HealthReport:
         timestamp=_TIMESTAMP,
         status=(
             HealthStatus.CRITICAL
-            if any(
-                check.status is HealthStatus.CRITICAL
-                for check in checks
-            )
+            if any(check.status is HealthStatus.CRITICAL for check in checks)
             else (
                 HealthStatus.DEGRADED
-                if any(
-                    check.status is HealthStatus.DEGRADED
-                    for check in checks
-                )
+                if any(check.status is HealthStatus.DEGRADED for check in checks)
                 else HealthStatus.HEALTHY
             )
         ),

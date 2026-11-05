@@ -1,22 +1,18 @@
-
 """Tests for the integrated MELTYMON AI OS monitoring service."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 
 from meltymon_ai_os.monitoring.diagnostics import (
-    DiagnosticEngine,
     DiagnosticReport,
-    DiagnosticSeverity,
 )
+from meltymon_ai_os.monitoring.gpu import GPUInfo, GPUSnapshot
 from meltymon_ai_os.monitoring.health import (
-    HealthEvaluator,
     HealthReport,
     HealthStatus,
 )
-from meltymon_ai_os.monitoring.gpu import GPUInfo, GPUSnapshot
 from meltymon_ai_os.monitoring.numa import (
     NUMAMemoryStats,
     NUMANode,
@@ -28,12 +24,10 @@ from meltymon_ai_os.monitoring.service import (
     MonitoringService,
 )
 from meltymon_ai_os.monitoring.system import (
-    SystemMonitor,
     SystemSnapshot,
 )
 
-
-_TIMESTAMP = datetime(2026, 11, 2, tzinfo=timezone.utc)
+_TIMESTAMP = datetime(2026, 11, 2, tzinfo=UTC)
 
 
 def create_snapshot(

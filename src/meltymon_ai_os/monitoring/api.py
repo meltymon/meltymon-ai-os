@@ -1,4 +1,3 @@
-
 """Public monitoring API for MELTYMON AI OS."""
 
 from meltymon_ai_os.monitoring.serialization import (
@@ -29,9 +28,7 @@ class MonitoringAPI:
         A custom SystemMonitor can be injected for testing or for
         specialized monitoring configurations.
         """
-        self.monitor = (
-            monitor if monitor is not None else SystemMonitor()
-        )
+        self.monitor = monitor if monitor is not None else SystemMonitor()
 
     async def get_snapshot(self) -> SystemSnapshot:
         """Collect and return a complete system snapshot."""

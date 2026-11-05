@@ -1,4 +1,3 @@
-
 """Tests for NUMA monitoring."""
 
 from pathlib import Path
@@ -7,7 +6,6 @@ import pytest
 
 from meltymon_ai_os.monitoring.numa import (
     NUMAMonitor,
-    NUMAMemoryStats,
 )
 
 
@@ -62,16 +60,12 @@ Node 1 Active: 512000 kB
 
 def test_parse_cpu_list() -> None:
     """Parse Linux CPU list notation."""
-    assert NUMAMonitor._parse_cpu_list("0-3,8,10-12") == (
-        0, 1, 2, 3, 8, 10, 11, 12
-    )
+    assert NUMAMonitor._parse_cpu_list("0-3,8,10-12") == (0, 1, 2, 3, 8, 10, 11, 12)
 
 
 def test_parse_cpu_list_invalid_values() -> None:
     """Ignore invalid CPU list entries."""
-    assert NUMAMonitor._parse_cpu_list("0-2,invalid,-1,5") == (
-        0, 1, 2, 5
-    )
+    assert NUMAMonitor._parse_cpu_list("0-2,invalid,-1,5") == (0, 1, 2, 5)
 
 
 def test_parse_memory_stats() -> None:
@@ -113,9 +107,7 @@ async def test_collect_two_nodes(numa_root: Path) -> None:
     assert snapshot.nodes[1].node_id == 1
 
     assert snapshot.nodes[0].cpus == (0, 1, 2, 3, 8, 9, 10, 11)
-    assert snapshot.nodes[1].cpus == (
-        4, 5, 6, 7, 12, 13, 14, 15
-    )
+    assert snapshot.nodes[1].cpus == (4, 5, 6, 7, 12, 13, 14, 15)
 
     assert snapshot.nodes[0].distances == (10, 21)
     assert snapshot.nodes[1].distances == (21, 10)

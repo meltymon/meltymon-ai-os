@@ -1,7 +1,6 @@
 """System health evaluation for MELTYMON AI OS."""
 
 import math
-
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
@@ -84,32 +83,22 @@ class HealthThresholds:
             or not isinstance(critical, (int, float))
             or isinstance(critical, bool)
         ):
-            raise ValueError(
-                f"{name} thresholds must be numeric"
-            )
+            raise TypeError(f"{name} thresholds must be numeric")
 
         if not math.isfinite(warning) or not math.isfinite(critical):
-            raise ValueError(
-                f"{name} thresholds must be finite"
-            )
+            raise ValueError(f"{name} thresholds must be finite")
 
         if warning < minimum or critical < minimum:
-            raise ValueError(
-                f"{name} thresholds must be at least {minimum}"
-            )
+            raise ValueError(f"{name} thresholds must be at least {minimum}")
 
-        if maximum is not None and (
-            warning > maximum or critical > maximum
-        ):
+        if maximum is not None and (warning > maximum or critical > maximum):
             raise ValueError(
-                f"{name} thresholds must be between "
-                f"{minimum:g} and {maximum:g}"
+                f"{name} thresholds must be between {minimum:g} and {maximum:g}"
             )
 
         if warning >= critical:
             raise ValueError(
-                f"{name} warning threshold must be lower "
-                "than its critical threshold"
+                f"{name} warning threshold must be lower than its critical threshold"
             )
 
 
@@ -143,18 +132,14 @@ class HealthReport:
     def degraded_checks(self) -> tuple[HealthCheck, ...]:
         """Return all checks with degraded status."""
         return tuple(
-            check
-            for check in self.checks
-            if check.status is HealthStatus.DEGRADED
+            check for check in self.checks if check.status is HealthStatus.DEGRADED
         )
 
     @property
     def critical_checks(self) -> tuple[HealthCheck, ...]:
         """Return all checks with critical status."""
         return tuple(
-            check
-            for check in self.checks
-            if check.status is HealthStatus.CRITICAL
+            check for check in self.checks if check.status is HealthStatus.CRITICAL
         )
 
 
@@ -166,11 +151,7 @@ class HealthEvaluator:
         thresholds: HealthThresholds | None = None,
     ) -> None:
         """Initialize the evaluator with configurable thresholds."""
-        self.thresholds = (
-            thresholds
-            if thresholds is not None
-            else HealthThresholds()
-        )
+        self.thresholds = thresholds if thresholds is not None else HealthThresholds()
 
     @staticmethod
     def _missing_check(
@@ -187,7 +168,7 @@ class HealthEvaluator:
     @staticmethod
     def _evaluate_range(
         name: str,
-        value: float | int,
+        value: float,
         unit: str,
         warning: float,
         critical: float,
@@ -208,10 +189,7 @@ class HealthEvaluator:
                 critical_threshold=critical,
             )
 
-        if (
-            not math.isfinite(value)
-            or not minimum <= value <= maximum
-        ):
+        if not math.isfinite(value) or not minimum <= value <= maximum:
             return HealthCheck(
                 name=name,
                 status=HealthStatus.DEGRADED,
@@ -268,9 +246,7 @@ class HealthEvaluator:
         identifier = self._gpu_identifier(gpu)
         description = self._gpu_description(gpu, identifier)
 
-        temperature_name = (
-            f"gpu.{identifier}.temperature"
-        )
+        temperature_name = f"gpu.{identifier}.temperature"
 
         if gpu.temperature_celsius is None:
             checks.append(
@@ -294,9 +270,7 @@ class HealthEvaluator:
                 HealthCheck(
                     name=temperature_check.name,
                     status=temperature_check.status,
-                    message=(
-                        f"{description}: {temperature_check.message}"
-                    ),
+                    message=(f"{description}: {temperature_check.message}"),
                     value=temperature_check.value,
                     unit=temperature_check.unit,
                     warning_threshold=temperature_check.warning_threshold,
@@ -410,9 +384,7 @@ class HealthEvaluator:
                 HealthCheck(
                     name="numa",
                     status=HealthStatus.HEALTHY,
-                    message=(
-                        f"{snapshot.numa.node_count} NUMA node(s) detected"
-                    ),
+                    message=(f"{snapshot.numa.node_count} NUMA node(s) detected"),
                     value=snapshot.numa.node_count,
                     unit="nodes",
                 )
@@ -455,16 +427,10 @@ class HealthEvaluator:
         # An empty GPU tuple is valid: no GPU was detected.
 
         # Determine the overall system health.
-        if any(
-            check.status is HealthStatus.CRITICAL
-            for check in checks
-        ):
+        if any(check.status is HealthStatus.CRITICAL for check in checks):
             overall_status = HealthStatus.CRITICAL
 
-        elif any(
-            check.status is HealthStatus.DEGRADED
-            for check in checks
-        ):
+        elif any(check.status is HealthStatus.DEGRADED for check in checks):
             overall_status = HealthStatus.DEGRADED
 
         else:

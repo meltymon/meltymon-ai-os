@@ -1,11 +1,11 @@
-
 """Intel GPU monitoring backend using Linux sysfs."""
 
 from __future__ import annotations
 
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import ClassVar
 
 from meltymon_ai_os.monitoring.gpu import (
     BaseGPUBackend,
@@ -19,7 +19,7 @@ class IntelGPUBackend(BaseGPUBackend):
 
     INTEL_VENDOR_ID = "0x8086"
 
-    KNOWN_GPUS = {
+    KNOWN_GPUS: ClassVar[dict[str, str]] = {
         "0x56a0": "Intel Arc A770",
         "0x56a1": "Intel Arc A750",
         "0x56a2": "Intel Arc A580",
@@ -119,11 +119,7 @@ class IntelGPUBackend(BaseGPUBackend):
                 vendor="Intel",
                 driver=driver,
                 device_id=pci_address,
-                backend=(
-                    "intel-i915"
-                    if driver == "i915"
-                    else "intel"
-                ),
+                backend=("intel-i915" if driver == "i915" else "intel"),
             )
 
             self._device_paths[pci_address] = device_path
@@ -152,18 +148,10 @@ class IntelGPUBackend(BaseGPUBackend):
             if self._read_text(hwmon_path / "name") != "i915":
                 continue
 
-            result["temperature"] = self._read_int(
-                hwmon_path / "temp1_input"
-            )
-            result["power"] = self._read_int(
-                hwmon_path / "power1_average"
-            )
-            result["power_limit"] = self._read_int(
-                hwmon_path / "power1_max"
-            )
-            result["energy"] = self._read_int(
-                hwmon_path / "energy1_input"
-            )
+            result["temperature"] = self._read_int(hwmon_path / "temp1_input")
+            result["power"] = self._read_int(hwmon_path / "power1_average")
+            result["power_limit"] = self._read_int(hwmon_path / "power1_max")
+            result["energy"] = self._read_int(hwmon_path / "energy1_input")
             break
 
         return result
@@ -188,27 +176,16 @@ class IntelGPUBackend(BaseGPUBackend):
             if not re.fullmatch(r"card\d+", card_path.name):
                 continue
 
-            current = self._read_int(
-                card_path / "gt_act_freq_mhz"
-            )
+            current = self._read_int(card_path / "gt_act_freq_mhz")
 
             if current is None:
-                current = self._read_int(
-                    card_path / "gt_cur_freq_mhz"
-                )
+                current = self._read_int(card_path / "gt_cur_freq_mhz")
 
-            maximum = self._read_int(
-                card_path / "gt_max_freq_mhz"
-            )
+            maximum = self._read_int(card_path / "gt_max_freq_mhz")
 
-            boost = self._read_int(
-                card_path / "gt_boost_freq_mhz"
-            )
+            boost = self._read_int(card_path / "gt_boost_freq_mhz")
 
-            if any(
-                value is not None
-                for value in (current, maximum, boost)
-            ):
+            if any(value is not None for value in (current, maximum, boost)):
                 result.update(
                     current=current,
                     maximum=maximum,
@@ -231,7 +208,7 @@ class IntelGPUBackend(BaseGPUBackend):
         frequency = self._read_frequency(device_path)
 
         return GPUSnapshot(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             gpu=gpu,
             temperature_celsius=(
                 hwmon["temperature"] / 1000
@@ -239,9 +216,7 @@ class IntelGPUBackend(BaseGPUBackend):
                 else None
             ),
             power_watts=(
-                hwmon["power"] / 1_000_000
-                if hwmon["power"] is not None
-                else None
+                hwmon["power"] / 1_000_000 if hwmon["power"] is not None else None
             ),
             power_limit_watts=(
                 hwmon["power_limit"] / 1_000_000
@@ -249,11 +224,12 @@ class IntelGPUBackend(BaseGPUBackend):
                 else None
             ),
             energy_joules=(
-                hwmon["energy"] / 1_000_000
-                if hwmon["energy"] is not None
-                else None
+                hwmon["energy"] / 1_000_000 if hwmon["energy"] is not None else None
             ),
             current_frequency_mhz=frequency["current"],
             max_frequency_mhz=frequency["maximum"],
             boost_frequency_mhz=frequency["boost"],
         )
+
+
+__all__ = ["IntelGPUBackend"]

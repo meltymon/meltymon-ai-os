@@ -2,7 +2,8 @@
 
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from typing import Protocol
 
 from meltymon_ai_os.monitoring.gpu import GPUMonitor, GPUSnapshot
 from meltymon_ai_os.monitoring.numa import NUMAMonitor, NUMASnapshot
@@ -10,6 +11,14 @@ from meltymon_ai_os.monitoring.resources import (
     ResourceMonitor,
     ResourceSnapshot,
 )
+
+
+class Collectable(Protocol):
+    """Common interface for asynchronous monitoring components."""
+
+    async def collect(self) -> object:
+        """Collect monitoring data from a component."""
+        ...
 
 
 @dataclass(frozen=True)
@@ -68,39 +77,29 @@ class SystemMonitor:
         specialized system configurations.
         """
         self.resource_monitor = (
-            resource_monitor
-            if resource_monitor is not None
-            else ResourceMonitor()
+            resource_monitor if resource_monitor is not None else ResourceMonitor()
         )
 
-        self.numa_monitor = (
-            numa_monitor
-            if numa_monitor is not None
-            else NUMAMonitor()
-        )
+        self.numa_monitor = numa_monitor if numa_monitor is not None else NUMAMonitor()
 
-        self.gpu_monitor = (
-            gpu_monitor
-            if gpu_monitor is not None
-            else GPUMonitor()
-        )
+        self.gpu_monitor = gpu_monitor if gpu_monitor is not None else GPUMonitor()
 
     @staticmethod
     async def _collect_component(
         name: str,
-        monitor: object,
+        monitor: Collectable,
     ) -> tuple[str, object | None, str | None]:
         """Collect one component while isolating its errors."""
         try:
-            collect = getattr(monitor, "collect")
-            result = await collect()
+            result = await monitor.collect()
 
             if result is None:
                 return name, None, "No data returned"
 
             return name, result, None
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
+            # Monitoring boundary: isolate failures per system component.
             return name, None, f"{type(exc).__name__}: {exc}"
 
     async def collect(self) -> SystemSnapshot:
@@ -120,10 +119,7 @@ class SystemMonitor:
         )
 
         results = await asyncio.gather(
-            *(
-                self._collect_component(name, monitor)
-                for name, monitor in monitors
-            )
+            *(self._collect_component(name, monitor) for name, monitor in monitors)
         )
 
         collected: dict[str, object | None] = {}
@@ -143,9 +139,16 @@ class SystemMonitor:
                 errors[component] = str(error)
 
         return SystemSnapshot(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             resources=collected["resources"],  # type: ignore[arg-type]
             numa=collected["numa"],  # type: ignore[arg-type]
             gpu=collected["gpu"],  # type: ignore[arg-type]
             errors=errors,
         )
+
+
+__all__ = [
+    "Collectable",
+    "SystemMonitor",
+    "SystemSnapshot",
+]

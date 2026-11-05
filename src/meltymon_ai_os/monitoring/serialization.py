@@ -1,14 +1,13 @@
-
 """JSON serialization utilities for MELTYMON AI OS monitoring data."""
 
 import json
 import math
-
+from collections.abc import Mapping
 from dataclasses import fields, is_dataclass
 from datetime import date, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 
 def to_primitive(value: Any) -> Any:
@@ -32,9 +31,7 @@ def to_primitive(value: Any) -> Any:
 
     if isinstance(value, float):
         if not math.isfinite(value):
-            raise ValueError(
-                f"Non-finite float values are not valid JSON: {value}"
-            )
+            raise ValueError(f"Non-finite float values are not valid JSON: {value}")
         return value
 
     if isinstance(value, datetime):
@@ -61,8 +58,7 @@ def to_primitive(value: Any) -> Any:
         for key, item in value.items():
             if not isinstance(key, str):
                 raise TypeError(
-                    "JSON object keys must be strings; "
-                    f"received {type(key).__name__}"
+                    f"JSON object keys must be strings; received {type(key).__name__}"
                 )
 
             result[key] = to_primitive(item)
@@ -72,9 +68,7 @@ def to_primitive(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [to_primitive(item) for item in value]
 
-    raise TypeError(
-        f"Unsupported serialization type: {type(value).__name__}"
-    )
+    raise TypeError(f"Unsupported serialization type: {type(value).__name__}")
 
 
 def snapshot_to_dict(snapshot: Any) -> dict[str, Any]:
@@ -87,9 +81,7 @@ def snapshot_to_dict(snapshot: Any) -> dict[str, Any]:
     result = to_primitive(snapshot)
 
     if not isinstance(result, dict):
-        raise TypeError(
-            "A system snapshot must serialize to a dictionary"
-        )
+        raise TypeError("A system snapshot must serialize to a dictionary")
 
     return result
 

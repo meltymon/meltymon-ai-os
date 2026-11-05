@@ -1,9 +1,8 @@
-
 """System resource monitoring for MELTYMON AI OS."""
 
 import asyncio
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import psutil
 
@@ -23,12 +22,12 @@ class ResourceSnapshot:
     @property
     def memory_used_gb(self) -> float:
         """Return used memory in GiB."""
-        return self.memory_used_bytes / (1024 ** 3)
+        return self.memory_used_bytes / (1024**3)
 
     @property
     def memory_total_gb(self) -> float:
         """Return total memory in GiB."""
-        return self.memory_total_bytes / (1024 ** 3)
+        return self.memory_total_bytes / (1024**3)
 
 
 class ResourceMonitor:
@@ -53,7 +52,7 @@ class ResourceMonitor:
         memory = psutil.virtual_memory()
 
         return ResourceSnapshot(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             cpu_percent=cpu_percent,
             memory_percent=memory.percent,
             memory_total_bytes=memory.total,

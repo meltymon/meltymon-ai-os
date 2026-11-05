@@ -1,10 +1,9 @@
-
 """NUMA topology and memory monitoring for MELTYMON AI OS."""
 
 import asyncio
 import re
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 
@@ -197,7 +196,7 @@ class NUMAMonitor:
         nodes = await asyncio.to_thread(self._collect)
 
         return NUMASnapshot(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             nodes=tuple(nodes),
         )
 

@@ -1,4 +1,3 @@
-
 from typing import Any
 
 from meltymon_ai_os.backends.base import BaseBackend
@@ -19,15 +18,10 @@ class ModelCatalog:
         """Extract a known context length from model information."""
 
         for key, value in model_info.items():
-            if key == "context_length" or key.endswith(
-                ".context_length"
+            if (key == "context_length" or key.endswith(".context_length")) and (
+                isinstance(value, int) and not isinstance(value, bool) and value > 0
             ):
-                if (
-                    isinstance(value, int)
-                    and not isinstance(value, bool)
-                    and value > 0
-                ):
-                    return value
+                return value
 
         return None
 
@@ -84,18 +78,14 @@ class ModelCatalog:
             model_info = {}
 
         capabilities = [
-            capability
-            for capability in capabilities
-            if isinstance(capability, str)
+            capability for capability in capabilities if isinstance(capability, str)
         ]
 
         self.models[model_name] = self.models[model_name].model_copy(
             update={
                 "capabilities": capabilities,
                 "model_info": model_info,
-                "context_length": self._extract_context_length(
-                    model_info
-                ),
+                "context_length": self._extract_context_length(model_info),
             }
         )
 

@@ -1,0 +1,932 @@
+# MELTYMON AI OS – Architektur
+
+## 1. Architekturüberblick
+
+MELTYMON AI OS ist eine modular aufgebaute, lokal ausgerichtete Plattform für die Integration und Orchestrierung lokaler KI-Systeme.
+
+### 1.1 Architekturkomponenten
+
+| Bereich | Verantwortlichkeit | Status |
+|---|---|---|
+| Configuration | Zentrale Anwendungskonfiguration und Validierung | Implementiert |
+| AI Backends | Kommunikation mit KI-Inferenzdiensten | Implementiert |
+| Model Management | Modellkatalog und normalisierte Metadaten | Implementiert |
+| Monitoring | CPU-, RAM-, NUMA- und GPU-Erfassung | Implementiert |
+| Health Evaluation | Bewertung des Systemzustands | Implementiert |
+| Diagnostics | Regelbasierte Analyse und Empfehlungen | Implementiert |
+| Monitoring API | Öffentlicher Python-Zugriff auf Monitoring-Daten | Implementiert |
+| Agent Runtime | Agentenlebenszyklus, Context und Results | Implementiert |
+| Execution | Kontrollierte parallele Agentenausführung | Implementiert |
+| Orchestration | Registrierung und Ausführung von Agenten | Implementiert |
+| Audit | Audit-Funktionalität | Grundgerüst |
+| Memory | Persistente Speicherung und Kontextabruf | Grundgerüst |
+| Security | Sicherheits- und Berechtigungssystem | Grundgerüst |
+| Validation | Eigenständige Validierungskomponenten | Grundgerüst |
+| User Interface | Grafische Verwaltungsoberfläche | Geplant |
+
+### 1.2 Lokale Ausrichtung
+
+Die initiale KI-Backend-Integration verwendet Ollama. Der Standardendpunkt lautet `http://127.0.0.1:11434`. Die lokale Ausführung ist das grundlegende Betriebsmodell. Weitere Backend-Anbieter können über die Backend-Abstraktion ergänzt werden.
+
+### 1.3 Architekturgrenzen
+
+Noch nicht implementiert sind insbesondere:
+
+- Eine vollständige automatische Agenten-zu-Modell-Integration.
+- Eine hardwareabhängige automatische Modellauswahl.
+- Eine zentrale Berechtigungs- und Autorisierungsinstanz.
+- Eine persistente Agenten- und Ausführungshistorie.
+- Eine vollständige Benutzeroberfläche.
+- Eine automatische Ressourcenplanung für Agenten.
+
+Diese Grenzen sind bei der Bewertung des aktuellen Funktionsumfangs zu berücksichtigen.
+
+## 2. Architekturprinzipien
+
+### 2.1 Modularität
+
+Jeder Bereich besitzt eine klar definierte Verantwortung. Subsysteme kommunizieren über explizite Schnittstellen. Direkte Abhängigkeiten von internen Implementierungsdetails anderer Komponenten werden vermieden.
+
+### 2.2 Local-first
+
+Die initiale KI-Integration ist auf lokale Inferenzdienste ausgerichtet. Der lokale Betrieb soll ohne zwingende Abhängigkeit von externen KI-Diensten möglich sein.
+
+### 2.3 Hardwarebewusstsein
+
+Die Plattform erfasst verfügbare Systemressourcen und Hardwareinformationen. Diese Informationen bilden die Grundlage für zukünftige Funktionen wie ressourcenbewusste Modellauswahl, Lastverteilung und Workload-Planung. Eine automatische Ressourcenoptimierung ist derzeit noch nicht implementiert.
+
+### 2.4 Fehlerisolierung
+
+Fehler einzelner Monitoring-Komponenten oder Hardwaregeräte sollen nicht unnötig die Funktionsfähigkeit unabhängiger Komponenten beeinträchtigen. Fehler werden lokal erfasst und als strukturierte Informationen weitergegeben.
+
+### 2.5 Testbarkeit
+
+Komponenten sollen unabhängig und ohne zwingende Abhängigkeit von physischer Spezialhardware getestet werden können. Abhängigkeiten sind deshalb, soweit sinnvoll, injizierbar.
+
+### 2.6 Explizite Zustände
+
+Fehlende Daten, nicht verfügbare Komponenten, erfolgreiche Ergebnisse ohne erkannte Geräte und tatsächliche Fehler müssen unterscheidbar bleiben.
+
+### 2.7 Unveränderliche Datenmodelle
+
+Zentrale Datenobjekte verwenden unveränderliche Strukturen, soweit dies fachlich sinnvoll ist. Dies betrifft unter anderem Agenten-Contexts, Ergebnisse, Monitoring-Snapshots und Ausführungsberichte. Dadurch werden unbeabsichtigte Änderungen und schwer nachvollziehbare Seiteneffekte reduziert.
+
+### 2.8 Kontrollierte Ausführung
+
+Agenten und Aufgaben werden unter definierten Ausführungsbedingungen betrieben. Dazu gehören:
+
+- Begrenzung paralleler Ausführungen.
+- Konfigurierbare Timeouts.
+- Definierte Lebenszykluszustände.
+- Nachvollziehbare Fehlerzustände.
+- Kontrollierte Behandlung von Abbrüchen und Timeouts.
+
+Timeouts und Abbrüche basieren auf kooperativer Cancellation. Eine sofortige oder erzwungene Beendigung bereits laufender Agenten wird dadurch nicht garantiert.
+
+### 2.9 Erweiterbarkeit
+
+Neue Backends, Monitoring-Anbieter, Agenten und Orchestrierungskomponenten sollen über vorhandene Abstraktionen integriert werden können. Erweiterbarkeit darf dabei nicht zu unnötiger Komplexität oder unklaren Zuständigkeiten führen.
+
+
+---
+
+## 3. Paketstruktur
+
+Der Quellcode ist unterhalb von `src/meltymon_ai_os/` in fachlich getrennte Python-Pakete organisiert.
+
+### 3.1 Quellcodeorganisation
+
+| Paket | Zentrale Module | Verantwortlichkeit |
+|---|---|---|
+| `agents/` | `base.py`, `capabilities.py`, `context.py`, `exceptions.py`, `lifecycle.py`, `result.py` | Agentenbasis, Context, Capabilities, Lebenszyklus und Ergebnisse |
+| `audit/` | `__init__.py` | Angelegtes Paketgerüst für ein zukünftiges Audit-Subsystem |
+| `backends/` | `base.py`, `ollama.py` | Backend-Abstraktion und Ollama-Integration |
+| `config/` | `settings.py`, `settings.yaml` | Anwendungskonfiguration und Validierung |
+| `execution/` | `manager.py`, `policy.py`, `report.py` | Ausführungssteuerung, Richtlinien und Berichte |
+| `memory/` | `__init__.py` | Angelegtes Paketgerüst für ein zukünftiges Memory-Subsystem |
+| `models/` | `catalog.py`, `metadata.py` | Modellkatalog und normalisierte Metadaten |
+| `monitoring/` | `api.py`, `diagnostics.py`, `gpu.py`, `gpu_intel.py`, `health.py`, `numa.py`, `resources.py`, `serialization.py`, `service.py`, `system.py` | Hardware- und Systemüberwachung, Bewertung und Diagnostik |
+| `orchestrator/` | `engine.py`, `exceptions.py`, `registry.py` | Agentenregistrierung und Orchestrierung |
+| `security/` | `__init__.py` | Angelegtes Paketgerüst für ein zukünftiges Security-Subsystem |
+| `validation/` | `__init__.py` | Angelegtes Paketgerüst für ein zukünftiges Validierungs-Subsystem |
+
+### 3.2 Implementierungsstatus
+
+Die Pakete `agents`, `backends`, `config`, `execution`, `models`, `monitoring` und `orchestrator` enthalten funktionale Implementierungen.
+
+Die Pakete `audit`, `memory`, `security` und `validation` sind derzeit strukturelle Grundgerüste. Ihre Verzeichnisse und Paketinitialisierungen stellen noch keine vollständigen Funktionen bereit.
+
+Eine eigenständige Benutzeroberfläche ist im aktuellen Quellcode nicht vorhanden.
+
+### 3.3 Abhängigkeitsprinzip
+
+Die Paketstruktur trennt fachliche Verantwortlichkeiten. Gemeinsame Datenverträge und Schnittstellen sollen direkte Abhängigkeiten zwischen konkreten Implementierungen reduzieren.
+
+Die tatsächliche Integrationstiefe ist dabei von der bloßen Existenz einzelner Pakete zu unterscheiden. Insbesondere besteht noch keine vollständige Ende-zu-Ende-Verbindung zwischen Agent Runtime, Ollama-Backend, Modellkatalog und Monitoring-Service.
+
+---
+
+## 4. Konfigurationsschicht
+
+**Modul:** `config/settings.py`
+
+Die Konfigurationsschicht stellt zentrale und validierte Anwendungseinstellungen bereit. Sie verwendet YAML als Konfigurationsformat und Pydantic zur Validierung der eingelesenen Werte.
+
+### 4.1 Konfigurationsbereiche
+
+Aktuell werden folgende Bereiche unterstützt:
+
+- Ollama-Verbindungsadresse (`base_url`).
+- HTTP-Anfrage-Timeout (`timeout`).
+- Standardmodell (`models.default`).
+
+Die Standardwerte sind:
+
+| Einstellung | Standardwert |
+|---|---|
+| Ollama URL | `http://127.0.0.1:11434` |
+| Ollama Timeout | `60.0` Sekunden |
+| Standardmodell | `gemma4:e4b` |
+
+### 4.2 Konfigurationsdatei
+
+Die standardmäßig verwendete Datei ist `config/settings.yaml` relativ zum Konfigurationsmodul. Ein alternativer Pfad kann beim Aufruf von `load_settings()` angegeben werden.
+
+Eine fehlende oder leere YAML-Datei wird als leere Konfiguration behandelt. Die Anwendung verwendet in diesem Fall die definierten Standardwerte.
+
+Die oberste YAML-Ebene sowie die Bereiche `ollama` und `models` müssen Mapping-Strukturen sein. Ungültige Konfigurationsdaten werden durch die Validierung zurückgewiesen.
+
+### 4.3 Umgebungsvariablen
+
+Folgende Umgebungsvariablen können die YAML-Einstellungen überschreiben:
+
+| Variable | Wirkung |
+|---|---|
+| `MELTYMON_OLLAMA_BASE_URL` | Überschreibt die Ollama-URL |
+| `MELTYMON_OLLAMA_TIMEOUT` | Überschreibt den HTTP-Timeout |
+| `MELTYMON_DEFAULT_MODEL` | Überschreibt das Standardmodell |
+
+Umgebungsvariablen besitzen damit Vorrang vor den entsprechenden Werten aus der YAML-Datei.
+
+### 4.4 Validierung
+
+Die Ollama-URL wird syntaktisch geprüft. Zulässig sind die HTTP-Schemata `http` und `https`; außerdem muss ein Hostname vorhanden sein. Abschließende Schrägstriche werden entfernt.
+
+Diese Prüfung bestätigt nicht, dass der konfigurierte Server tatsächlich erreichbar ist.
+
+Der Timeout muss größer als null und darf höchstens 600 Sekunden betragen. Der Modellname darf nach dem Entfernen führender und nachfolgender Leerzeichen nicht leer sein.
+
+Die validierten Werte werden in typisierten Pydantic-Einstellungsmodellen bereitgestellt.
+
+### 4.5 Architektonische Verantwortung
+
+Die Konfigurationsschicht ist die zentrale Quelle für anwendungsweite Einstellungen. Fachmodule sollen ihre Konfiguration nicht unabhängig voneinander aus unterschiedlichen Quellen zusammensetzen.
+
+
+---
+
+## 5. AI-Backend-Schicht
+
+**Module:** `backends/base.py`, `backends/ollama.py`
+
+Die Backend-Schicht kapselt die Kommunikation mit KI-Inferenzdiensten. Eine gemeinsame abstrakte Schnittstelle trennt die fachliche Nutzung eines Backends von dessen anbieterspezifischer Implementierung.
+
+### 5.1 Backend-Abstraktion
+
+`BaseBackend` definiert eine asynchrone Schnittstelle mit folgenden Operationen:
+
+- `check_connection()`: Prüft, ob das Backend erreichbar ist.
+- `list_models()`: Liefert die verfügbaren Modelle.
+- `show_model(model)`: Ruft Details zu einem Modell ab.
+- `generate(model, prompt, **kwargs)`: Führt eine Modellgenerierung aus.
+
+Die Methoden sind asynchron und bilden den gemeinsamen Vertrag für konkrete Backend-Implementierungen.
+
+### 5.2 Ollama-Integration
+
+`OllamaBackend` implementiert die Backend-Schnittstelle für Ollama. Die Kommunikation erfolgt über HTTP mit `httpx.AsyncClient`.
+
+Verwendete Ollama-Endpunkte:
+
+| HTTP-Methode | Endpunkt | Zweck |
+|---|---|---|
+| `GET` | `/api/version` | Verbindungstest und Versionsabfrage |
+| `GET` | `/api/tags` | Auflistung verfügbarer Modelle |
+| `POST` | `/api/show` | Abruf von Modelldetails |
+| `POST` | `/api/generate` | Textgenerierung |
+
+Die Generierungsanfrage verwendet derzeit `stream=False`. Antworten werden somit vollständig und nicht als laufender Token-Stream verarbeitet.
+
+### 5.3 Verbindungsparameter und Testbarkeit
+
+Die Implementierung übernimmt URL und Timeout aus der Konfiguration. Ohne explizite Übergabe gelten die Standardwerte `http://127.0.0.1:11434` und 60 Sekunden.
+
+Der HTTP-Transport kann injiziert werden. Dadurch lassen sich HTTP-Kommunikation und Fehlerfälle in Tests kontrolliert simulieren, ohne einen laufenden Ollama-Dienst vorauszusetzen.
+
+### 5.4 Fehlerbehandlung
+
+`check_connection()` liefert bei HTTP-Kommunikationsfehlern `False` zurück. Die übrigen Backend-Operationen prüfen HTTP-Statuscodes und geben entsprechende HTTP-Fehler weiter.
+
+Andere Programmier- oder Validierungsfehler werden nicht pauschal als Verbindungsfehler behandelt und können weiterhin als Ausnahmen auftreten.
+
+Damit bleibt die Fehlerbehandlung für aufrufende Komponenten nachvollziehbar. Ein fehlgeschlagener Verbindungstest wird nicht mit einer erfolgreichen Modelloperation gleichgesetzt.
+
+### 5.5 Erweiterbarkeit und aktuelle Grenzen
+
+Weitere Anbieter können durch Implementierungen von `BaseBackend` ergänzt werden. Die Backend-Abstraktion stellt dafür einen gemeinsamen technischen Vertrag bereit.
+
+Aktuell ist Ollama als konkretes Backend implementiert. Eine automatische Auswahl oder Umschaltung zwischen mehreren Anbietern ist nicht Bestandteil der vorhandenen Implementierung.
+
+Die Backend-Schicht ist außerdem noch nicht standardmäßig mit der Agent Runtime verbunden. Eine Agentenausführung verwendet daher nicht automatisch ein Modell aus dem Backend oder dem Modellkatalog.
+
+---
+
+## 6. Modellverwaltung
+
+**Module:** `models/catalog.py`, `models/metadata.py`
+
+Die Modellverwaltung trennt die Erkennung verfügbarer Modelle von ihrer normalisierten Beschreibung. Der `ModelCatalog` verwendet ein Backend zur Abfrage und hält die ermittelten Modelldaten in einer einheitlichen Struktur vor.
+
+### 6.1 Modellkatalog
+
+`ModelCatalog` erhält eine Implementierung von `BaseBackend` als Abhängigkeit. Der Katalog stellt folgende Funktionen bereit:
+
+- `refresh()`: Ruft die verfügbaren Modelle beim Backend ab und aktualisiert den lokalen Katalog.
+- `get(name)`: Liefert die gespeicherten Metadaten eines Modells oder `None`, wenn es nicht vorhanden ist.
+- `get_details(name)`: Ruft zusätzliche Modelldetails für ein bereits katalogisiertes Modell ab. Ist das Modell nicht im Katalog vorhanden, wird ein `KeyError` ausgelöst.
+
+Beim Aktualisieren werden ungültige oder leere Modellnamen ignoriert. Die neu ermittelten Modelle ersetzen den bisherigen Katalogbestand.
+
+### 6.2 Normalisierte Metadaten
+
+`ModelMetadata` stellt ein typisiertes Datenmodell für backendübergreifend nutzbare Modellinformationen bereit. Dazu gehören unter anderem:
+
+- Modellname und Backend-Zuordnung.
+- Modellfamilie und Parametergröße.
+- Quantisierung und Speichergröße.
+- Änderungszeitpunkt und Digest.
+- Kontextlänge und erkannte Fähigkeiten.
+- Zusätzliche Modelldetails und backendbezogene Informationen.
+
+Das Datenmodell erlaubt zusätzliche Felder, damit backend-spezifische Informationen erhalten bleiben können.
+
+### 6.3 Capability-Erkennung
+
+Die Metadaten stellen Convenience-Eigenschaften zur Abfrage folgender Fähigkeiten bereit:
+
+- `supports_vision`
+- `supports_tools`
+- `supports_thinking`
+
+Diese Eigenschaften beschreiben die im Modellkatalog hinterlegten Fähigkeiten. Sie stellen keine eigenständige Laufzeitprüfung oder Garantie dar, dass ein Modell eine bestimmte Funktion in jeder Konfiguration erfolgreich ausführen kann.
+
+### 6.4 Abruf zusätzlicher Modelldetails
+
+`get_details()` ergänzt die vorhandenen Metadaten durch eine Backend-Abfrage. Erkannte Fähigkeiten werden nur aus einer Liste von Zeichenketten übernommen. Zusätzliche Modellinformationen werden nur als Mapping berücksichtigt.
+
+Eine positive Kontextlänge wird aus dem Feld `context_length` oder aus einem entsprechend benannten Eintrag mit dem Suffix `.context_length` ermittelt.
+
+### 6.5 Aktuelle Grenzen
+
+Der Modellkatalog verwaltet und normalisiert verfügbare Modelldaten. Er führt derzeit keine automatische Modellauswahl anhand von RAM, GPU-Speicher, NUMA-Struktur oder Aufgabenanforderungen durch.
+
+Eine automatische Modellzuweisung an Agenten ist ebenfalls noch nicht implementiert.
+
+---
+
+## 7. Hardware-Monitoring
+
+**Module:** `monitoring/resources.py`, `monitoring/numa.py`, `monitoring/gpu.py`, `monitoring/gpu_intel.py`
+
+Die Hardware-Monitoring-Schicht erfasst System- und Geräteinformationen über voneinander getrennte Komponenten. Jede Komponente liefert einen eigenen Snapshot mit Zeitstempel und typisierten Messwerten.
+
+### 7.1 CPU- und Arbeitsspeicher-Monitoring
+
+`ResourceMonitor` verwendet `psutil`, um CPU- und Arbeitsspeicherinformationen zu erfassen.
+
+Der `ResourceSnapshot` enthält unter anderem:
+
+- CPU-Auslastung in Prozent.
+- Arbeitsspeicherauslastung in Prozent.
+- Gesamten, verfügbaren und belegten Arbeitsspeicher in Bytes.
+- Anzahl der logischen CPUs.
+- Zeitpunkt der Erfassung.
+
+Die Speicherwerte werden zusätzlich über Eigenschaften in GiB bereitgestellt. Die CPU-Auslastung wird mit einem kurzen Messintervall ermittelt. Die synchrone `psutil`-Abfrage wird außerhalb des asyncio-Event-Loops ausgeführt.
+
+### 7.2 NUMA-Monitoring
+
+`NUMAMonitor` ermittelt die NUMA-Topologie unter Linux über das Sysfs-Verzeichnis `/sys/devices/system/node`.
+
+Für jeden erkannten NUMA-Knoten werden folgende Informationen erfasst:
+
+- Knoten-ID.
+- Zugeordnete CPUs.
+- Gesamter, freier und belegter Knotenspeicher.
+- Zusätzliche vom Kernel bereitgestellte Speicherstatistiken.
+- Vom Kernel ausgewiesene NUMA-Distanzen.
+
+CPU-Listen wie `0-3,8,10-12` werden in einzelne CPU-IDs aufgelöst. Speicherangaben aus dem Kernel-Meminfo werden von KiB in Bytes umgerechnet. Wenn der Kernel keinen expliziten Wert für den belegten Speicher bereitstellt, wird dieser aus Gesamt- und freiem Speicher abgeleitet.
+
+Die Sysfs-Wurzel kann für Tests oder alternative Systemumgebungen konfiguriert werden. Die Dateisystemabfragen laufen über `asyncio.to_thread` außerhalb des Event-Loops.
+
+### 7.3 GPU-Monitoring und Backend-Abstraktion
+
+`GPUMonitor` verwendet GPU-Backend-Implementierungen zur Geräteerkennung und Telemetrieerfassung. Ein Backend implementiert die asynchronen Operationen `detect()` und `collect(gpu)`.
+
+Das allgemeine GPU-Datenmodell unterstützt unter anderem:
+
+- Hersteller, Gerätename, Treiber, Geräte-ID und Backend-Kennung.
+- GPU-Auslastung.
+- Belegten und gesamten GPU-Speicher.
+- Temperatur und Leistungsaufnahme.
+- Leistungsgrenze und Energieverbrauch.
+- Aktuelle, maximale und Boost-Taktfrequenz.
+
+Die Unterstützung einzelner Messwerte hängt von der jeweiligen Backend-Implementierung und den verfügbaren Treiberschnittstellen ab.
+
+### 7.4 Intel-GPU-Backend
+
+`IntelGPUBackend` ermittelt Intel-Grafikgeräte über Linux-DRM- und PCI-Sysfs-Strukturen. Die Erkennung beschränkt sich auf DRM-Geräte `cardN` und prüft die PCI-Herstellerkennung `0x8086`.
+
+Erkannte Geräte werden anhand ihrer PCI-Adresse dedupliziert. Der aktive Treiber wird ermittelt und in der Backend-Kennung berücksichtigt. Für bekannte Geräte-IDs werden lesbare Modellnamen verwendet; unbekannte Intel-Geräte bleiben ebenfalls erkennbar.
+
+Sofern entsprechende Sysfs-Dateien vorhanden sind, liest das Backend folgende Messwerte aus:
+
+- GPU-Temperatur.
+- Leistungsaufnahme und Leistungsgrenze.
+- Energieverbrauch.
+- Aktuelle, maximale und Boost-Taktfrequenz.
+
+Die Werte werden aus den jeweiligen Sysfs-Einheiten in °C, Watt, Joule und MHz umgerechnet.
+
+### 7.5 Aktuelle Grenzen der GPU-Telemetrie
+
+Das allgemeine GPU-Datenmodell sieht GPU-Auslastung und GPU-Speicherwerte vor. Das derzeitige Intel-Backend liefert diese Werte jedoch noch nicht.
+
+Die aktuelle Intel-Implementierung konzentriert sich auf Geräteerkennung, Temperatur, Leistungs- und Energieinformationen sowie Taktfrequenzen. NVIDIA- und AMD-Backends sind noch nicht implementiert.
+
+Das Intel-Backend wird standardmäßig aktiviert, wenn `GPUMonitor` ohne explizite Backend-Liste erzeugt wird. Eine explizit übergebene leere Backend-Liste deaktiviert die GPU-Überwachung.
+
+---
+
+## 8. System-Monitoring-Orchestrierung
+
+**Modul:** `monitoring/system.py`
+
+`SystemMonitor` führt die einzelnen Hardware-Monitoring-Komponenten zusammen. Er koordiniert die Erfassung von Ressourcen-, NUMA- und GPU-Daten und stellt die Ergebnisse als gemeinsamen `SystemSnapshot` bereit.
+
+### 8.1 Komponenten und Abhängigkeiten
+
+Der `SystemMonitor` verwendet standardmäßig folgende Komponenten:
+
+- `ResourceMonitor` für CPU- und Arbeitsspeicherdaten.
+- `NUMAMonitor` für NUMA-Topologie und Knotenspeicher.
+- `GPUMonitor` für GPU-Erkennung und Telemetrie.
+
+Die Komponenten können bei der Initialisierung injiziert werden. Dadurch lassen sich alternative Implementierungen und kontrollierte Testumgebungen verwenden.
+
+### 8.2 Parallele Datenerfassung
+
+Die drei Monitoring-Komponenten werden innerhalb eines Erfassungszyklus parallel über `asyncio.gather` ausgeführt.
+
+Die synchrone Erfassung einzelner Betriebssystemdaten wird von den jeweiligen Monitoren bei Bedarf in einen separaten Thread ausgelagert. Dadurch werden blockierende Systemabfragen vom asyncio-Event-Loop ferngehalten.
+
+### 8.3 SystemSnapshot
+
+Der unveränderliche `SystemSnapshot` fasst die Ergebnisse eines Erfassungszyklus zusammen. Er enthält:
+
+- Einen UTC-Zeitstempel.
+- Einen Ressourcen-Snapshot oder `None`.
+- Einen NUMA-Snapshot oder `None`.
+- Eine GPU-Sammlung oder `None`.
+- Ein Fehler-Mapping mit den betroffenen Komponenten und Fehlerbeschreibungen.
+
+Die GPU-Sammlung besitzt eine bewusst eindeutige Zustandssemantik:
+
+| Wert | Bedeutung |
+|---|---|
+| `None` | GPU-Erfassung fehlgeschlagen |
+| `()` | GPU-Erfassung erfolgreich, aber kein Gerät erkannt |
+| Nicht leeres Tupel | Mindestens ein GPU-Gerät erfolgreich erfasst |
+
+Damit bleiben eine nicht verfügbare Erfassung und ein erfolgreich festgestelltes System ohne erkannte GPU unterscheidbar.
+
+### 8.4 Fehlerisolierung
+
+Fehler einer einzelnen Monitoring-Komponente werden lokal abgefangen und im Fehler-Mapping des Snapshots dokumentiert. Erfolgreich erfasste Daten anderer Komponenten bleiben erhalten.
+
+Zusätzliche Fehler des GPU-Monitors, beispielsweise bei der Erkennung oder Abfrage einzelner Geräte, werden ebenfalls in den gemeinsamen Snapshot übernommen. Erfolgreich erfasste GPU-Geräte bleiben verfügbar, auch wenn andere Geräte oder Backends Fehler melden.
+
+### 8.5 Snapshot-Gesundheitsstatus
+
+Die Eigenschaft `SystemSnapshot.healthy` liefert `True`, wenn das Fehler-Mapping leer ist. Sie ist eine einfache Aussage über die Fehlerfreiheit des Erfassungszyklus und ersetzt nicht die fachliche Gesundheitsbewertung durch den `HealthEvaluator`.
+
+Die Eigenschaft `available_components` listet die Komponenten auf, für die Daten erfolgreich vorliegen.
+
+---
+
+## 9. Health Evaluation
+
+**Modul:** `monitoring/health.py`
+
+Der `HealthEvaluator` bewertet die von `SystemMonitor` erfassten Messwerte anhand definierter Schwellenwerte. Die Gesundheitsbewertung ist von der reinen Datenerfassung getrennt.
+
+### 9.1 Gesundheitszustände
+
+Das System kennt drei Gesundheitszustände:
+
+| Status | Bedeutung |
+|---|---|
+| `HEALTHY` | Alle verfügbaren Prüfungen liegen im unkritischen Bereich. |
+| `DEGRADED` | Mindestens eine Prüfung meldet eine Warnung oder nicht verfügbare beziehungsweise ungültige Daten. |
+| `CRITICAL` | Mindestens eine Messung hat einen kritischen Schwellenwert erreicht oder überschritten. |
+
+Bei der Ermittlung des Gesamtstatus hat `CRITICAL` Vorrang vor `DEGRADED`, und `DEGRADED` Vorrang vor `HEALTHY`.
+
+### 9.2 Konfigurierbare Schwellenwerte
+
+`HealthThresholds` definiert Warn- und kritische Grenzwerte für CPU-Auslastung, Arbeitsspeicher, GPU-Temperatur und GPU-Speicherauslastung.
+
+| Messgröße | Warnschwelle | Kritische Schwelle |
+|---|---:|---:|
+| CPU-Auslastung | 80 % | 95 % |
+| Arbeitsspeicher | 85 % | 95 % |
+| GPU-Temperatur | 80 °C | 90 °C |
+| GPU-Speicher | 90 % | 97 % |
+
+Die Schwellenwerte werden bei der Initialisierung validiert. Prozentwerte müssen endlich und innerhalb des Bereichs von 0 bis 100 liegen. Die Warnschwelle muss jeweils unterhalb der kritischen Schwelle liegen. Temperaturgrenzen müssen endlich, nicht negativ und ebenfalls aufsteigend sein.
+
+### 9.3 Bewertete Komponenten
+
+Der `HealthEvaluator` bewertet die verfügbaren Informationen zu folgenden Bereichen:
+
+- CPU-Auslastung.
+- Gesamter Arbeitsspeicher.
+- NUMA-Topologie und Speicher je NUMA-Knoten.
+- GPU-Temperatur je erkanntem Gerät.
+- GPU-Speicherauslastung je erkanntem Gerät.
+- Fehler aus dem Monitoring-Snapshot.
+
+NUMA-Daten ohne erkannte Knoten oder mit nicht verwendbaren Speicherwerten führen zu einer eingeschränkten Bewertung. Bei vorhandenen NUMA-Knoten wird der Speicher jedes Knotens separat geprüft.
+
+GPU-Messwerte werden gerätebezogen bewertet. Fehlende Temperatur- oder Speicherwerte führen zu einer eingeschränkten Bewertung, nicht zu einer stillschweigenden Annahme eines gesunden Zustands.
+
+### 9.4 Umgang mit fehlenden und ungültigen Messwerten
+
+Fehlende Prüfungen, nicht verfügbare Komponenten sowie ungültige oder nicht endliche Messwerte werden als `DEGRADED` bewertet. Ungültige Messwerte werden nicht als normale Messwerte interpretiert.
+
+Eine erfolgreich abgeschlossene GPU-Erkennung ohne gefundene Geräte ist dagegen kein Fehler und erzeugt keine GPU-Einzelprüfungen. Eine fehlgeschlagene GPU-Erfassung bleibt davon unterscheidbar.
+
+Alle im `SystemSnapshot` enthaltenen Monitoring-Fehler werden zusätzlich als eingeschränkte Health-Prüfungen berücksichtigt.
+
+### 9.5 Trennung von Erfassung und Bewertung
+
+Der `SystemMonitor` liefert Messwerte und Erfassungsfehler. Der `HealthEvaluator` interpretiert diese Informationen anhand der Schwellenwerte und erzeugt einen `HealthReport` mit Einzelprüfungen und Gesamtstatus.
+
+Der Gesundheitsstatus beschreibt den Zustand der verfügbaren und bewertbaren Messgrößen. Er ersetzt weder die detaillierte Diagnose noch eine weitergehende Ursachenanalyse.
+
+---
+
+## 10. Diagnostic Engine
+
+**Modul:** `monitoring/diagnostics.py`
+
+Die `DiagnosticEngine` übersetzt die Ergebnisse der Gesundheitsbewertung in strukturierte Diagnosebefunde. Sie arbeitet deterministisch und regelbasiert. Eine Analyse durch ein Sprachmodell oder ein Machine-Learning-System ist nicht Bestandteil der aktuellen Implementierung.
+
+### 10.1 Diagnosemodell
+
+Jeder `DiagnosticFinding` beschreibt einen einzelnen Befund. Er enthält unter anderem:
+
+- Eine eindeutige Regelkennung (`rule_id`).
+- Die betroffene Komponente.
+- Einen Schweregrad.
+- Einen Titel und eine Erläuterung.
+- Eine Handlungsempfehlung.
+- Den beobachteten Wert und die zugehörige Einheit, sofern verfügbar.
+- Die zugrunde liegenden Schwellenwerte, sofern relevant.
+
+Die Schweregrade sind numerisch geordnet:
+
+| Schweregrad | Wert | Bedeutung |
+|---|---:|---|
+| `INFO` | 0 | Information ohne Warncharakter |
+| `WARNING` | 1 | Auffälligkeit oder eingeschränkte Datenlage |
+| `CRITICAL` | 2 | Kritischer Befund |
+
+### 10.2 Diagnosebericht
+
+`DiagnosticReport` fasst die Befunde eines Diagnosezyklus mit einem Zeitstempel zusammen.
+
+Die höchste Schwere aller enthaltenen Befunde bestimmt den Gesamt-Schweregrad. Ein Bericht gilt nur dann als gesund (`healthy`), wenn er keine Befunde enthält.
+
+Damit ist ein Diagnosebericht auch dann nicht gesund, wenn er ausschließlich Informationsbefunde enthält. Der Gesundheitsstatus des `HealthReport` und die Befundlage des `DiagnosticReport` bleiben bewusst getrennte Aussagen.
+
+### 10.3 Regelbasierte Befunderkennung
+
+Die Engine ordnet Health-Prüfungen anhand ihrer Komponenten, Statuswerte und Meldungen bekannten Diagnoseklassen zu. Dazu gehören unter anderem:
+
+| Regelkennung | Anwendungsbereich |
+|---|---|
+| `MONITORING_DATA_INVALID` | Fehlende, ungültige oder nicht verfügbare Messdaten |
+| `CPU_PRESSURE` | Erhöhte CPU-Auslastung |
+| `MEMORY_PRESSURE` | Erhöhte Arbeitsspeicherauslastung |
+| `GPU_TEMPERATURE` | Erhöhte GPU-Temperatur |
+| `GPU_MEMORY_PRESSURE` | Erhöhte GPU-Speicherauslastung |
+| `NUMA_MEMORY_PRESSURE` | Auffällige Speicherauslastung eines NUMA-Knotens |
+| `NUMA_MONITORING` | Eingeschränkte NUMA-Erfassung oder Topologieinformationen |
+| `RESOURCE_MONITORING` | Fehler bei der Ressourcenüberwachung |
+| `GPU_MONITORING` | Fehler bei der GPU-Überwachung |
+| `UNCLASSIFIED_HEALTH_ISSUE` | Nicht eindeutig zuordenbare Gesundheitsauffälligkeit |
+
+Fehlende oder ungültige Messwerte werden als Datenqualitätsproblem behandelt und nicht als normale Ressourcenbelastung fehlinterpretiert.
+
+### 10.4 Gerätebezogene GPU-Diagnostik
+
+GPU-Befunde werden den jeweiligen Geräten zugeordnet. Dadurch können Auffälligkeiten einzelner GPUs getrennt dargestellt werden. Backend- und gerätespezifische Fehlerkennungen bleiben bei der Diagnose erhalten.
+
+### 10.5 Diagnose und Handlungsempfehlungen
+
+Die Engine erzeugt zu erkannten Befunden eine Erläuterung und eine passende Handlungsempfehlung. Diese Empfehlungen basieren auf den implementierten Regeln und den verfügbaren Messwerten.
+
+Die Engine führt selbst keine Reparaturen, Konfigurationsänderungen oder automatischen Eingriffe am System durch.
+
+### 10.6 Aktuelle Grenzen
+
+Die Diagnostik ist regelbasiert und verwendet den `HealthReport` als Eingabe. Sie besitzt derzeit keine historische Trendanalyse, keine persistente Befundhistorie und keine KI-gestützte Ursachenanalyse.
+
+---
+
+## 11. Monitoring Service
+
+**Modul:** `monitoring/service.py`
+
+Der `MonitoringService` bildet die übergeordnete Verarbeitungsschicht für die Systemüberwachung. Er verbindet Datenerfassung, Gesundheitsbewertung und Diagnostik zu einem gemeinsamen Ergebnis.
+
+### 11.1 Zusammensetzung
+
+Der Service verwendet drei fachlich getrennte Komponenten:
+
+- `SystemMonitor` zur Erfassung der System- und Hardwaredaten.
+- `HealthEvaluator` zur Bewertung der erfassten Daten.
+- `DiagnosticEngine` zur Ableitung strukturierter Diagnosebefunde.
+
+Alle drei Komponenten können bei der Initialisierung injiziert werden. Werden keine eigenen Instanzen übergeben, erzeugt der Service die jeweiligen Standardimplementierungen.
+
+### 11.2 Verarbeitungsablauf
+
+Die Methode `collect()` führt die Verarbeitung in folgender Reihenfolge aus:
+
+1. Der `SystemMonitor` erstellt einen `SystemSnapshot`.
+2. Der `HealthEvaluator` bewertet diesen Snapshot und erzeugt einen `HealthReport`.
+3. Die `DiagnosticEngine` verarbeitet den Health-Report und erstellt einen `DiagnosticReport`.
+4. Der Service fasst alle drei Ergebnisse in einem `MonitoringResult` zusammen.
+
+Die Verarbeitungsschritte erfolgen sequenziell, da jeder Schritt die Ausgabe des vorherigen Schritts benötigt.
+
+### 11.3 MonitoringResult
+
+`MonitoringResult` ist ein unveränderliches Datenobjekt und enthält:
+
+- Den vollständigen `SystemSnapshot`.
+- Den zugehörigen `HealthReport`.
+- Den `DiagnosticReport`.
+
+Die Eigenschaft `healthy` delegiert an den Gesundheitsstatus des enthaltenen `HealthReport`. Sie wird nicht aus dem Diagnosebericht abgeleitet.
+
+### 11.4 Aktuelle Grenzen
+
+Der `MonitoringService` führt die Verarbeitung nur auf ausdrücklichen Aufruf von `collect()` aus. Eine integrierte Zeitplanung, ein automatischer Hintergrunddienst oder eine persistente Speicherung der Monitoring-Ergebnisse sind derzeit nicht implementiert.
+
+Der Service stellt außerdem keine automatische Verbindung zu Agenten oder zur Agenten-Orchestrierung her.
+
+---
+
+## 12. Monitoring API und Serialisierung
+
+**Module:** `monitoring/api.py`, `monitoring/serialization.py`
+
+Die Monitoring API stellt einen öffentlichen asynchronen Python-Zugriff auf die Systemüberwachung bereit. Sie ermöglicht den Abruf von Monitoring-Snapshots und deren Überführung in strukturierte Python-Daten oder JSON.
+
+### 12.1 MonitoringAPI
+
+`MonitoringAPI` verwendet einen injizierbaren `SystemMonitor`. Ohne explizite Übergabe wird eine Standardinstanz erzeugt.
+
+Die öffentliche Schnittstelle umfasst drei asynchrone Methoden:
+
+| Methode | Rückgabewert | Zweck |
+|---|---|---|
+| `get_snapshot()` | `SystemSnapshot` | Erfasst und liefert einen Snapshot. |
+| `get_snapshot_dict()` | `dict` | Liefert den Snapshot als Python-Dictionary. |
+| `get_snapshot_json(indent=2)` | `str` | Liefert den Snapshot als JSON-Zeichenkette. |
+
+Die API stellt derzeit Monitoring-Snapshots bereit. Health- und Diagnoseberichte werden nicht über eigene API-Methoden angeboten.
+
+### 12.2 Abgrenzung zu HTTP- und REST-Schnittstellen
+
+Die Bezeichnung Monitoring API beschreibt eine Python-Programmierschnittstelle. Ein HTTP-Server, REST-Endpunkte, Authentifizierung oder Netzwerkzugriff auf die Monitoring-Daten sind in diesem Modul nicht implementiert.
+
+Eine spätere Web- oder REST-Schnittstelle kann auf der bestehenden Python-API und den Serialisierungsfunktionen aufbauen.
+
+### 12.3 Generische Serialisierung
+
+`serialization.py` stellt mit `to_primitive()` eine generische Konvertierung unterstützter Python-Datenstrukturen bereit.
+
+Unterstützt werden:
+
+- `None`, Zeichenketten, boolesche Werte und Ganzzahlen.
+- Endliche Fließkommazahlen.
+- `datetime`- und `date`-Objekte im ISO-8601-Format.
+- Enumerationen über ihren jeweiligen Wert.
+- `Path`-Objekte als Zeichenketten.
+- Dataclasses über ihre Felder.
+- Mappings mit Zeichenketten als Schlüsseln.
+- Listen und Tupel als Listen.
+
+Die Konvertierung erfolgt rekursiv. Nicht endliche Fließkommazahlen führen zu einem `ValueError`. Nicht unterstützte Datentypen sowie Mappings mit nicht zeichenkettenbasierten Schlüsseln führen zu einem `TypeError`.
+
+### 12.4 JSON-Ausgabe
+
+`snapshot_to_dict()` wandelt einen Snapshot in ein Dictionary um. `snapshot_to_json()` erzeugt daraus eine JSON-Zeichenkette.
+
+Die JSON-Ausgabe verwendet `ensure_ascii=False`, damit Unicode-Zeichen direkt erhalten bleiben. `allow_nan=False` verhindert die Ausgabe nicht standardkonformer JSON-Werte wie NaN oder Infinity.
+
+### 12.5 Entkopplung und Erweiterbarkeit
+
+Die Serialisierung arbeitet generisch und benötigt keine direkte Abhängigkeit vom konkreten `SystemSnapshot`-Typ. Dadurch können die Konvertierungsfunktionen auch für weitere kompatible Datenobjekte verwendet werden.
+
+Die Python-API und die Serialisierung bilden eine Grundlage für spätere Integrationen, ersetzen aber keine noch zu implementierende Netzwerk- oder Zugriffsschutzschicht.
+
+---
+
+## 13. Aktueller Monitoring-Datenfluss
+
+Der Monitoring-Datenfluss besteht aus zwei voneinander unabhängigen Zugriffspfaden: der vollständigen Verarbeitung über den `MonitoringService` und dem direkten Snapshot-Zugriff über die `MonitoringAPI`.
+
+### 13.1 Verarbeitung über den MonitoringService
+
+Der reguläre Verarbeitungspfad verbindet Hardware-Erfassung, Gesundheitsbewertung und Diagnostik sequenziell:
+
+```mermaid
+flowchart TD
+    R[ResourceMonitor] --> S[SystemMonitor]
+    N[NUMAMonitor] --> S
+    G[GPUMonitor] --> S
+    S --> SS[SystemSnapshot]
+    SS --> H[HealthEvaluator]
+    H --> HR[HealthReport]
+    HR --> D[DiagnosticEngine]
+    D --> DR[DiagnosticReport]
+    SS --> MS[MonitoringService]
+    HR --> MS
+    DR --> MS
+    MS --> MR[MonitoringResult]
+```
+
+Die drei Hardware-Monitoring-Komponenten werden innerhalb eines Erfassungszyklus parallel aufgerufen. Die anschließende Gesundheitsbewertung und Diagnostik erfolgen sequenziell.
+
+### 13.2 Direkter Zugriff über die MonitoringAPI
+
+Die `MonitoringAPI` verwendet den `SystemMonitor` unabhängig vom `MonitoringService`. Sie ruft einen Snapshot ab und kann diesen anschließend serialisieren:
+
+```mermaid
+flowchart TD
+    C[API-Aufrufer] --> A[MonitoringAPI]
+    A --> S[SystemMonitor]
+    S --> SS[SystemSnapshot]
+    SS --> D[snapshot_to_dict]
+    SS --> J[snapshot_to_json]
+    D --> C
+    J --> C
+```
+
+Dieser Zugriffspfad führt keine Health Evaluation und keine Diagnose durch. Die API liefert ausschließlich den angeforderten Snapshot beziehungsweise dessen serialisierte Darstellung.
+
+### 13.3 Architektonische Einordnung
+
+Beide Zugriffspfade nutzen dieselbe Monitoring-Infrastruktur, erfüllen aber unterschiedliche Aufgaben:
+
+- `MonitoringService` liefert ein kombiniertes Ergebnis aus Messwerten, Gesundheitsbewertung und Diagnose.
+- `MonitoringAPI` stellt einen direkten programmatischen Zugriff auf Monitoring-Snapshots bereit.
+
+Die `MonitoringAPI` ist kein nachgelagerter Bestandteil des `MonitoringService`. Beide Komponenten greifen unabhängig auf den `SystemMonitor` zu.
+
+---
+
+## 14. Fehlerbehandlung und Fehlerisolierung
+
+Die Architektur behandelt Fehler möglichst nahe an der Komponente, in der sie entstehen. Ziel ist es, lokale Ausfälle zu begrenzen, erfolgreiche Teilergebnisse zu erhalten und Fehler für nachgelagerte Komponenten nachvollziehbar bereitzustellen.
+
+### 14.1 Isolation der Monitoring-Komponenten
+
+Der `SystemMonitor` führt Ressourcen-, NUMA- und GPU-Erfassung unabhängig voneinander aus. Fehler einer Komponente werden erfasst und dem jeweiligen Bereich im `SystemSnapshot.errors`-Mapping zugeordnet.
+
+Ein Fehler bei der GPU-Erfassung verhindert somit nicht automatisch die Übernahme erfolgreicher CPU-, RAM- oder NUMA-Daten. Entsprechend bleiben erfolgreiche Monitoring-Ergebnisse verfügbar, wenn eine andere Komponente ausfällt.
+
+### 14.2 Isolation innerhalb des GPU-Monitorings
+
+Der `GPUMonitor` behandelt Fehler bei Backend-Erkennung und Geräteabfragen separat. Fehler werden mit Backend- beziehungsweise Gerätekennung dokumentiert.
+
+Wenn mehrere Geräte vorhanden sind, können erfolgreiche Messwerte einzelner Geräte erhalten bleiben, obwohl die Erfassung anderer Geräte fehlschlägt. Die Fehler werden anschließend an den `SystemMonitor` weitergegeben.
+
+### 14.3 Fehlende Daten und Fehlerzustände
+
+Die Architektur unterscheidet zwischen:
+
+- Erfolgreich erfassten Daten.
+- Einer erfolgreichen Erfassung ohne erkannte Geräte.
+- Nicht verfügbaren Daten.
+- Ungültigen Messwerten.
+- Explizit erfassten Komponenten- oder Gerätefehlern.
+
+Diese Zustände dürfen in der weiteren Verarbeitung nicht pauschal als gleichwertig behandelt werden. Insbesondere ist eine leere GPU-Sammlung kein Erfassungsfehler. Fehlende oder ungültige Messwerte führen dagegen zu einer eingeschränkten Gesundheitsbewertung.
+
+### 14.4 Fehlerweitergabe und Diagnose
+
+Erfasste Monitoring-Fehler bleiben im `SystemSnapshot` erhalten. Der `HealthEvaluator` berücksichtigt sie bei der Gesundheitsbewertung. Die `DiagnosticEngine` kann daraus strukturierte Befunde mit konkreten Komponenten- und Fehlerkennungen ableiten.
+
+Fehler werden dadurch nicht stillschweigend verworfen oder als erfolgreiche Messung dargestellt.
+
+### 14.5 Grenzen der Fehlerisolierung
+
+Die Fehlerisolierung gilt für die implementierten Komponenten- und Geräteabfragen. Sie stellt keine vollständige Prozessisolation dar.
+
+Asynchrone Abbrüche und Task-Cancellation werden nicht pauschal als gewöhnliche Komponentenfehler behandelt. Die Komponenten-Erfassung fängt reguläre `Exception`-Fehler ab; Cancellation-Signale außerhalb dieser Fehlerklasse können den übergeordneten Ablauf weiterhin abbrechen.
+
+---
+
+## 15. Testarchitektur
+
+Die Testarchitektur basiert auf `pytest` und prüft die Komponenten möglichst unabhängig von der tatsächlich installierten Hardware und laufenden externen Diensten.
+
+### 15.1 Testbarkeit und Isolation
+
+Abhängigkeiten werden, soweit sinnvoll, injiziert. Externe Schnittstellen und Systemressourcen können durch kontrollierte Testimplementierungen, Mocks und temporäre Dateisystemstrukturen simuliert werden.
+
+Dadurch sind insbesondere Tests möglich, ohne einen laufenden Ollama-Dienst, eine bestimmte GPU oder eine reale NUMA-Konfiguration vorauszusetzen.
+
+### 15.2 Abgedeckte Funktionsbereiche
+
+Die Tests umfassen unter anderem:
+
+- Konfiguration, YAML-Verarbeitung und Umgebungsvariablen.
+- Backend-Kommunikation und HTTP-Fehlerbehandlung.
+- Modellkatalog und normalisierte Metadaten.
+- CPU-, Speicher-, NUMA- und GPU-Erfassung.
+- Intel-GPU-Erkennung und Sysfs-Telemetrie.
+- Parallele Systemerfassung und Fehlerisolierung.
+- Health Evaluation und Schwellenwertprüfung.
+- Regelbasierte Diagnostik.
+- Monitoring Service, API und Serialisierung.
+- Agentenlebenszyklus, Context und Ergebnisse.
+- Ausführungssteuerung, Timeouts und Abbruchbehandlung.
+- Agentenregistrierung und Orchestrierung.
+
+### 15.3 Qualitätsprüfungen
+
+Das zentrale Review-Skript `scripts/review.py` bündelt mehrere Qualitätsprüfungen:
+
+- Ruff Linting und Formatprüfung.
+- Mypy zur statischen Typprüfung.
+- Pytest einschließlich Statement- und Branch-Coverage.
+- Bandit zur Prüfung auf typische Python-Sicherheitsprobleme.
+- pip-audit zur Prüfung bekannter Schwachstellen in Python-Abhängigkeiten.
+- Paket-Build und Import-Smoke-Test des erzeugten Wheels.
+- Twine-Metadatenprüfung.
+
+Die Abhängigkeitsprüfung kann über `--audit-dependencies` ausdrücklich aktiviert werden.
+
+### 15.4 Letzter dokumentierter Review-Stand
+
+Der letzte vollständige Review-Lauf mit aktivierter Abhängigkeitsprüfung wurde am 5. November 2026 durchgeführt. Dabei wurden 16 Prüfungen erfolgreich abgeschlossen; es gab keine fehlgeschlagenen oder übersprungenen Prüfungen.
+
+Die dabei gemessene Testabdeckung betrug:
+
+| Kennzahl | Ergebnis |
+|---|---:|
+| Statement Coverage | 96,79 % |
+| Branch Coverage | 91,50 % |
+
+Die Ergebnisse beziehen sich auf den genannten Review-Lauf und stellen keine Garantie für Fehlerfreiheit oder zukünftige Testergebnisse dar. Änderungen am Quellcode erfordern eine erneute Prüfung.
+
+### 15.5 Aussagekraft und Grenzen
+
+Hohe Testabdeckung und erfolgreiche Qualitätsprüfungen erhöhen die Nachvollziehbarkeit und reduzieren das Risiko unerkannter Regressionen. Sie ersetzen jedoch weder Tests auf realer Zielhardware noch eine sicherheitsbezogene Prüfung des späteren Gesamtsystems.
+
+---
+
+## 16. Implementierte und geplante Architekturkomponenten
+
+Der aktuelle Implementierungsstand umfasst neben dem Monitoring-System bereits eine Agent Runtime, eine Ausführungssteuerung und eine Agenten-Orchestrierung. Weitere Pakete sind bislang strukturelle Grundgerüste oder noch nicht vorhanden.
+
+### 16.1 Implementierte Komponenten
+
+| Komponente | Implementierung | Verantwortung |
+|---|---|---|
+| Agent Runtime | `agents/` | Agentenbasis, Context, Capabilities, Lebenszyklus, Ergebnisse und Fehlerbehandlung |
+| Execution Layer | `execution/` | Begrenzung paralleler Ausführungen, Batch-Steuerung, Richtlinien und Ausführungsberichte |
+| Orchestrator | `orchestrator/` | Agentenregistrierung, Instanziierung und kontrollierte Weiterleitung von Ausführungsaufträgen |
+| AI Backend | `backends/` | Gemeinsame Backend-Schnittstelle und Ollama-Integration |
+| Model Catalog | `models/` | Erfassung und Normalisierung verfügbarer Modellinformationen |
+| Monitoring | `monitoring/` | Hardware-Erfassung, Gesundheitsbewertung, Diagnostik und Monitoring-API |
+
+### 16.2 Agent Runtime und Lebenszyklus
+
+Die Agent Runtime stellt mit `AgentBase` eine abstrakte Grundlage für konkrete Agenten bereit. Agenten erhalten einen `AgentContext`, deklarieren ihre Fähigkeiten und liefern ein strukturiertes `AgentResult`.
+
+Der Lebenszyklus wird über explizite Zustände und zulässige Zustandsübergänge verwaltet. Eine Agenteninstanz ist für eine einmalige Ausführung vorgesehen. Timeouts und Cancellation werden berücksichtigt; die Beendigung bleibt dabei kooperativ und stellt keine harte Prozess- oder Thread-Terminierung dar.
+
+Deklarierte Capabilities beschreiben die Fähigkeiten eines Agenten. Sie stellen selbst keine Berechtigungen dar und ersetzen keine Autorisierungs- oder Freigabemechanismen.
+
+### 16.3 Execution Layer
+
+Der `ExecutionManager` steuert die parallele Ausführung mehrerer Agenten unter Berücksichtigung einer konfigurierten Parallelitätsgrenze und optionaler Batch-Timeouts.
+
+Ausführungen werden in unveränderlichen Records und Reports dokumentiert. Bei einem Fail-fast-Abbruch werden noch nicht gestartete Aufgaben nicht mehr eingeplant; bereits laufende Aufgaben werden dadurch nicht automatisch abgebrochen.
+
+Bei einem Batch-Timeout werden ausstehende Aufgaben abgebrochen und ihre Bereinigung abgewartet. Auch hier hängt die tatsächliche Beendigung von der kooperativen Cancellation der jeweiligen Agenten ab.
+
+### 16.4 Orchestrierung und Agentenregistrierung
+
+Der `AgentRegistry` verwaltet Agentenfabriken anstelle dauerhaft gespeicherter Agenteninstanzen. Bei einer Ausführung wird über die registrierte Factory eine neue Instanz erzeugt und auf Typ, Kennung und initialen Lebenszykluszustand geprüft.
+
+Der `Orchestrator` verbindet Registry und Agent Runtime. Er validiert den Ausführungskontext sowie die zurückgegebenen Ergebnisse und behandelt Orchestrierungsfehler. Cancellation wird an den aufrufenden Ablauf weitergegeben.
+
+Die Registry erwartet, dass eine Factory bei jedem Aufruf eine neue Agenteninstanz erzeugt. Diese Anforderung ist Teil des Factory-Vertrags.
+
+### 16.5 Strukturelle Grundgerüste
+
+Folgende Pakete sind im Quellcode vorhanden, enthalten derzeit jedoch noch keine vollständigen fachlichen Implementierungen:
+
+| Paket | Aktueller Status |
+|---|---|
+| `audit/` | Grundgerüst für ein späteres Audit-Subsystem |
+| `memory/` | Grundgerüst für ein späteres Memory-Subsystem |
+| `security/` | Grundgerüst für ein späteres Security- und Autorisierungssubsystem |
+| `validation/` | Grundgerüst für ein späteres Validierungssubsystem |
+
+Die Existenz dieser Pakete bedeutet nicht, dass bereits persistente Audit-Protokolle, ein Memory-System, eine Berechtigungsverwaltung oder eine zentrale Validierungspipeline implementiert sind.
+
+### 16.6 Noch fehlende Integrationsschicht
+
+Die vorhandenen Komponenten besitzen eigenständige Schnittstellen und können über Dependency Injection miteinander beziehungsweise mit konkreten Agenten verbunden werden. Eine standardisierte Ende-zu-Ende-Integration zwischen Agent Runtime, Ollama-Backend, Modellkatalog und Monitoring-Service ist jedoch noch nicht implementiert.
+
+Insbesondere fehlen derzeit:
+
+- Eine automatische Modellzuweisung an Agenten.
+- Eine hardware- und ressourcenbewusste Modellauswahl.
+- Eine zentrale Verbindung zwischen Agentenausführung und Monitoring-Ergebnissen.
+- Ein standardisierter Autorisierungs- und Freigabepfad für Agentenaktionen.
+- Eine persistente Memory- und Audit-Infrastruktur.
+
+Eine eigenständige Benutzeroberfläche ist im aktuellen Quellcode ebenfalls noch nicht vorhanden.
+
+### 16.7 Architektonische Weiterentwicklung
+
+Die vorhandenen Schnittstellen bilden eine Grundlage für die schrittweise Integration weiterer Komponenten. Neue Funktionen sollen dabei über klar definierte Verträge ergänzt werden, ohne die bestehenden Verantwortlichkeiten unnötig zu vermischen.
+
+Die nächsten Integrationsschritte sollten insbesondere Autorisierung, kontrollierte Agentenaktionen, Ressourcenbewertung und die Verbindung zwischen Modellkatalog und Agent Runtime berücksichtigen.
+
+---
+
+## 17. Weiterführende Dokumentation
+
+Die folgenden Dokumente ergänzen diese Architekturübersicht um projektspezifische Informationen, Entwicklungsrichtlinien und technische Entscheidungen:
+
+- [Projektübersicht](../README.md)
+- [Entwicklungshistorie](DEVELOPMENT.md)
+- [Roadmap](../ROADMAP.md)
+- [Änderungshistorie](../CHANGELOG.md)
+- [Teststrategie](TESTING.md)
+- [Architekturentscheidungen (ADR)](adr/)
+- [Mitwirkungsrichtlinien](../CONTRIBUTING.md)
+- [Lizenz](../LICENSE)
+
+Die Architektur beschreibt den technischen Aufbau und die Verantwortlichkeiten der Komponenten. Die Roadmap dokumentiert dagegen geplante Entwicklungsschritte. Der tatsächliche Implementierungsstand ist jeweils anhand des Quellcodes und der zugehörigen Tests zu beurteilen.
+
+---
+
+## Projektstatus
+
+MELTYMON AI OS verfügt über eine modulare Grundlage für lokale KI-Integration, Modellverwaltung, Hardware-Monitoring, Gesundheitsbewertung und regelbasierte Diagnostik.
+
+Neben diesen Monitoring-Funktionen sind eine Agent Runtime, eine Ausführungssteuerung und eine Agenten-Orchestrierung implementiert. Die vorhandenen Komponenten besitzen definierte Schnittstellen und unterstützen Dependency Injection sowie automatisierte Tests.
+
+Der aktuelle Funktionsumfang umfasst insbesondere:
+
+- Eine validierte, YAML- und umgebungsvariablenbasierte Anwendungskonfiguration.
+- Eine Backend-Abstraktion mit einer konkreten Ollama-Integration.
+- Einen Modellkatalog mit normalisierten Metadaten und Capability-Erkennung.
+- CPU-, Arbeitsspeicher-, NUMA- und Intel-GPU-Monitoring.
+- Eine zusammengeführte Systemerfassung mit Fehlerisolierung.
+- Eine getrennte Gesundheitsbewertung und regelbasierte Diagnostik.
+- Einen Monitoring-Service sowie eine asynchrone Python-API mit Serialisierung.
+- Eine Agent Runtime mit explizitem Lebenszyklus, Context und strukturierten Ergebnissen.
+- Eine begrenzte parallele Ausführungssteuerung mit Timeouts und Ausführungsberichten.
+- Eine Agentenregistrierung und Orchestrierung auf Basis von Agentenfabriken.
+
+Noch nicht vollständig implementiert sind insbesondere die standardisierte Ende-zu-Ende-Integration zwischen Agenten, Modellverwaltung, Backend und Monitoring sowie eine hardwarebewusste automatische Modellauswahl. Audit, Memory, Security und Validation bestehen derzeit lediglich aus strukturellen Paketgrundgerüsten. Eine eigenständige Benutzeroberfläche und eine HTTP- beziehungsweise REST-Schnittstelle sind ebenfalls nicht vorhanden.
+
+Der letzte dokumentierte vollständige Qualitätsreview vom 5. November 2026 verlief mit 16 erfolgreichen Prüfungen ohne Fehler oder übersprungene Prüfungen. Die gemessene Statement Coverage lag bei 96,79 Prozent, die Branch Coverage bei 91,50 Prozent.
+
+Die Architektur ist auf schrittweise Erweiterbarkeit, klar getrennte Verantwortlichkeiten, kontrollierte Ausführung und nachvollziehbare Fehlerbehandlung ausgelegt. Der aktuelle Stand bildet eine technische Grundlage für weitere Integrations- und Sicherheitsfunktionen, stellt jedoch noch kein vollständig integriertes autonomes KI-Betriebssystem dar.

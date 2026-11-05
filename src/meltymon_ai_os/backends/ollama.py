@@ -4,12 +4,6 @@ import httpx
 
 from meltymon_ai_os.backends.base import BaseBackend
 
-from typing import Any
-
-import httpx
-
-from meltymon_ai_os.backends.base import BaseBackend
-
 
 class OllamaBackend(BaseBackend):
     """Asynchronous backend adapter for a local Ollama instance."""
@@ -31,9 +25,7 @@ class OllamaBackend(BaseBackend):
                 timeout=self.timeout,
                 transport=self.transport,
             ) as client:
-                response = await client.get(
-                    f"{self.base_url}/api/version"
-                )
+                response = await client.get(f"{self.base_url}/api/version")
                 response.raise_for_status()
                 return True
         except httpx.HTTPError:
@@ -45,18 +37,15 @@ class OllamaBackend(BaseBackend):
             timeout=self.timeout,
             transport=self.transport,
         ) as client:
-            response = await client.get(
-                f"{self.base_url}/api/tags"
-            )
+            response = await client.get(f"{self.base_url}/api/tags")
             response.raise_for_status()
             data = response.json()
 
         models = data.get("models")
 
         if not isinstance(models, list):
-            raise ValueError(
-                "Invalid Ollama API response: "
-                "expected 'models' to be a list"
+            raise ValueError(  # noqa: TRY004
+                "Invalid Ollama API response: expected 'models' to be a list"
             )
 
         return models

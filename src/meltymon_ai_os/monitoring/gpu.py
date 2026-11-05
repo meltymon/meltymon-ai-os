@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 
 
 @dataclass(frozen=True)
@@ -88,13 +88,11 @@ class GPUMonitor:
                 IntelGPUBackend,
             )
 
-            self.backends = [IntelGPUBackend()]
+            self.backends: list[BaseGPUBackend] = [IntelGPUBackend()]
         else:
             self.backends = list(backends)
 
-        self.detected_gpus: list[
-            tuple[BaseGPUBackend, GPUInfo]
-        ] = []
+        self.detected_gpus: list[tuple[BaseGPUBackend, GPUInfo]] = []
 
         self.errors: dict[str, str] = {}
 
@@ -103,8 +101,7 @@ class GPUMonitor:
         """Create a stable, readable key for a backend."""
         name = type(backend).__name__
 
-        if name.endswith("GPUBackend"):
-            name = name[:-len("GPUBackend")]
+        name = name.removesuffix("GPUBackend")
 
         return name.lower() or "unknown"
 
@@ -132,18 +129,17 @@ class GPUMonitor:
                 devices = await backend.detect()
 
                 if devices is None:
-                    raise RuntimeError(
-                        "Backend returned no detection result"
-                    )
+                    raise RuntimeError("Backend returned no detection result")
 
                 for device in devices:
                     self.detected_gpus.append((backend, device))
                     detected.append(device)
 
-            except Exception as exc:
-                self.errors[
-                    f"gpu.backend.{backend_key}"
-                ] = f"{type(exc).__name__}: {exc}"
+            except Exception as exc:  # noqa: BLE001
+                # Backend boundary: isolate failures per GPU backend.
+                self.errors[f"gpu.backend.{backend_key}"] = (
+                    f"{type(exc).__name__}: {exc}"
+                )
 
         return detected
 
@@ -164,15 +160,20 @@ class GPUMonitor:
                 snapshot = await backend.collect(gpu)
 
                 if snapshot is None:
-                    raise RuntimeError(
-                        "Backend returned no telemetry snapshot"
-                    )
+                    raise RuntimeError("Backend returned no telemetry snapshot")
 
                 snapshots.append(snapshot)
 
-            except Exception as exc:
-                self.errors[device_key] = (
-                    f"{type(exc).__name__}: {exc}"
-                )
+            except Exception as exc:  # noqa: BLE001
+                # Device boundary: preserve snapshots from other GPUs.
+                self.errors[device_key] = f"{type(exc).__name__}: {exc}"
 
         return tuple(snapshots)
+
+
+__all__ = [
+    "BaseGPUBackend",
+    "GPUInfo",
+    "GPUMonitor",
+    "GPUSnapshot",
+]

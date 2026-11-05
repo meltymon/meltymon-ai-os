@@ -5,8 +5,8 @@ import pytest
 
 from meltymon_ai_os.backends.ollama import OllamaBackend
 
-
 # Successful responses
+
 
 @pytest.mark.asyncio
 async def test_check_connection_success():
@@ -14,9 +14,7 @@ async def test_check_connection_success():
         assert request.url.path == "/api/version"
         return httpx.Response(200, json={"version": "0.13.0"})
 
-    backend = OllamaBackend(
-        transport=httpx.MockTransport(handler)
-    )
+    backend = OllamaBackend(transport=httpx.MockTransport(handler))
 
     assert await backend.check_connection() is True
 
@@ -30,9 +28,7 @@ async def test_list_models():
             json={"models": [{"name": "gemma4:e4b"}]},
         )
 
-    backend = OllamaBackend(
-        transport=httpx.MockTransport(handler)
-    )
+    backend = OllamaBackend(transport=httpx.MockTransport(handler))
 
     models = await backend.list_models()
 
@@ -54,9 +50,7 @@ async def test_generate():
             json={"response": "Hallo!"},
         )
 
-    backend = OllamaBackend(
-        transport=httpx.MockTransport(handler)
-    )
+    backend = OllamaBackend(transport=httpx.MockTransport(handler))
 
     result = await backend.generate(
         model="gemma4:e4b",
@@ -68,6 +62,7 @@ async def test_generate():
 
 # Error handling
 
+
 @pytest.mark.asyncio
 async def test_check_connection_unreachable():
     def handler(request):
@@ -76,9 +71,7 @@ async def test_check_connection_unreachable():
             request=request,
         )
 
-    backend = OllamaBackend(
-        transport=httpx.MockTransport(handler)
-    )
+    backend = OllamaBackend(transport=httpx.MockTransport(handler))
 
     assert await backend.check_connection() is False
 
@@ -88,9 +81,7 @@ async def test_list_models_http_error():
     def handler(request):
         return httpx.Response(500, json={"error": "Internal Server Error"})
 
-    backend = OllamaBackend(
-        transport=httpx.MockTransport(handler)
-    )
+    backend = OllamaBackend(transport=httpx.MockTransport(handler))
 
     with pytest.raises(httpx.HTTPStatusError):
         await backend.list_models()
@@ -101,9 +92,7 @@ async def test_list_models_invalid_response():
     def handler(request):
         return httpx.Response(200, json={"unexpected": "data"})
 
-    backend = OllamaBackend(
-        transport=httpx.MockTransport(handler)
-    )
+    backend = OllamaBackend(transport=httpx.MockTransport(handler))
 
     with pytest.raises(ValueError, match="expected 'models'"):
         await backend.list_models()
@@ -114,9 +103,7 @@ async def test_generate_http_error():
     def handler(request):
         return httpx.Response(500, json={"error": "Generation failed"})
 
-    backend = OllamaBackend(
-        transport=httpx.MockTransport(handler)
-    )
+    backend = OllamaBackend(transport=httpx.MockTransport(handler))
 
     with pytest.raises(httpx.HTTPStatusError):
         await backend.generate(
@@ -124,14 +111,13 @@ async def test_generate_http_error():
             prompt="Hallo Ollama",
         )
 
+
 @pytest.mark.asyncio
 async def test_show_model():
     expected = {
         "modelfile": "FROM gemma4:e4b",
         "capabilities": ["completion", "vision", "tools"],
-        "model_info": {
-            "general.architecture": "gemma4"
-        },
+        "model_info": {"general.architecture": "gemma4"},
     }
 
     def handler(request):
@@ -143,9 +129,7 @@ async def test_show_model():
 
         return httpx.Response(200, json=expected)
 
-    backend = OllamaBackend(
-        transport=httpx.MockTransport(handler)
-    )
+    backend = OllamaBackend(transport=httpx.MockTransport(handler))
 
     result = await backend.show_model("gemma4:e4b")
 

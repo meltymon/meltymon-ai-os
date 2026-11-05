@@ -1,4 +1,3 @@
-
 """Rule-based system diagnostics for MELTYMON AI OS."""
 
 from dataclasses import dataclass
@@ -47,14 +46,12 @@ class DiagnosticReport:
     def severity(self) -> DiagnosticSeverity:
         """Return the highest severity found in this report."""
         if any(
-            finding.severity is DiagnosticSeverity.CRITICAL
-            for finding in self.findings
+            finding.severity is DiagnosticSeverity.CRITICAL for finding in self.findings
         ):
             return DiagnosticSeverity.CRITICAL
 
         if any(
-            finding.severity is DiagnosticSeverity.WARNING
-            for finding in self.findings
+            finding.severity is DiagnosticSeverity.WARNING for finding in self.findings
         ):
             return DiagnosticSeverity.WARNING
 
@@ -195,9 +192,7 @@ class DiagnosticEngine:
                 rule_id="MONITORING_DATA_INVALID",
                 component=component,
                 severity=DiagnosticSeverity.WARNING,
-                title=(
-                    f"Monitoring data unavailable or invalid: {check.name}"
-                ),
+                title=f"Monitoring data unavailable or invalid: {check.name}",
                 explanation=check.message,
                 recommendation=recommendation,
                 observed_value=check.value,
@@ -209,23 +204,14 @@ class DiagnosticEngine:
         severity = DiagnosticEngine._severity(check.status)
         critical = severity is DiagnosticSeverity.CRITICAL
 
-        common = {
-            "severity": severity,
-            "observed_value": check.value,
-            "unit": check.unit,
-            "warning_threshold": check.warning_threshold,
-            "critical_threshold": check.critical_threshold,
-        }
-
         # CPU utilization.
         if check.name == "cpu":
             return DiagnosticFinding(
                 rule_id="CPU_PRESSURE",
                 component="cpu",
+                severity=severity,
                 title=(
-                    "Critical CPU utilization"
-                    if critical
-                    else "High CPU utilization"
+                    "Critical CPU utilization" if critical else "High CPU utilization"
                 ),
                 explanation=(
                     "CPU utilization has reached a critical level."
@@ -238,7 +224,10 @@ class DiagnosticEngine:
                     "Reduce unnecessary CPU-intensive tasks and check "
                     "for runaway processes."
                 ),
-                **common,
+                observed_value=check.value,
+                unit=check.unit,
+                warning_threshold=check.warning_threshold,
+                critical_threshold=check.critical_threshold,
             )
 
         # System memory.
@@ -246,6 +235,7 @@ class DiagnosticEngine:
             return DiagnosticFinding(
                 rule_id="MEMORY_PRESSURE",
                 component="memory",
+                severity=severity,
                 title=(
                     "Critical memory pressure"
                     if critical
@@ -261,7 +251,10 @@ class DiagnosticEngine:
                     "memory leaks and reduce unnecessary workloads. "
                     "Consider whether additional RAM is required."
                 ),
-                **common,
+                observed_value=check.value,
+                unit=check.unit,
+                warning_threshold=check.warning_threshold,
+                critical_threshold=check.critical_threshold,
             )
 
         # Per-device GPU temperature and memory.
@@ -271,7 +264,6 @@ class DiagnosticEngine:
             device_id, metric = gpu_metric
 
             component = f"gpu.{device_id}" if device_id else "gpu"
-            device_label = f"GPU {device_id}" if device_id else "GPU"
 
             if metric == "temperature":
                 explanation = (
@@ -287,6 +279,7 @@ class DiagnosticEngine:
                 return DiagnosticFinding(
                     rule_id="GPU_TEMPERATURE",
                     component=component,
+                    severity=severity,
                     title=(
                         f"Critical GPU temperature: {device_id}"
                         if critical and device_id
@@ -306,7 +299,10 @@ class DiagnosticEngine:
                         "dust accumulation. Reduce GPU load if the "
                         "temperature remains critical."
                     ),
-                    **common,
+                    observed_value=check.value,
+                    unit=check.unit,
+                    warning_threshold=check.warning_threshold,
+                    critical_threshold=check.critical_threshold,
                 )
 
             explanation = (
@@ -322,6 +318,7 @@ class DiagnosticEngine:
             return DiagnosticFinding(
                 rule_id="GPU_MEMORY_PRESSURE",
                 component=component,
+                severity=severity,
                 title=(
                     f"Critical GPU memory pressure: {device_id}"
                     if critical and device_id
@@ -341,19 +338,20 @@ class DiagnosticEngine:
                     "Unload unused models or reduce batch size, "
                     "context length or other memory-intensive settings."
                 ),
-                **common,
+                observed_value=check.value,
+                unit=check.unit,
+                warning_threshold=check.warning_threshold,
+                critical_threshold=check.critical_threshold,
             )
 
         # NUMA node memory.
-        if (
-            check.name.startswith("numa.node_")
-            and check.name.endswith(".memory")
-        ):
+        if check.name.startswith("numa.node_") and check.name.endswith(".memory"):
             node_id = check.name.split(".")[1].removeprefix("node_")
 
             return DiagnosticFinding(
                 rule_id="NUMA_MEMORY_PRESSURE",
                 component=f"numa.node_{node_id}",
+                severity=severity,
                 title=(
                     f"Critical memory pressure on NUMA node {node_id}"
                     if critical
@@ -363,15 +361,17 @@ class DiagnosticEngine:
                     f"NUMA node {node_id} has reached a critical "
                     "memory utilization level."
                     if critical
-                    else f"NUMA node {node_id} has elevated "
-                    "memory utilization."
+                    else f"NUMA node {node_id} has elevated memory utilization."
                 ),
                 recommendation=(
                     "Inspect process memory allocation and NUMA "
                     "affinity. Check whether workloads are unevenly "
                     "distributed across NUMA nodes."
                 ),
-                **common,
+                observed_value=check.value,
+                unit=check.unit,
+                warning_threshold=check.warning_threshold,
+                critical_threshold=check.critical_threshold,
             )
 
         # NUMA topology or monitoring.
@@ -379,6 +379,7 @@ class DiagnosticEngine:
             return DiagnosticFinding(
                 rule_id="NUMA_MONITORING",
                 component="numa",
+                severity=severity,
                 title="NUMA information unavailable",
                 explanation=check.message,
                 recommendation=(
@@ -386,7 +387,10 @@ class DiagnosticEngine:
                     "Verify that the operating system exposes NUMA node "
                     "information."
                 ),
-                **common,
+                observed_value=check.value,
+                unit=check.unit,
+                warning_threshold=check.warning_threshold,
+                critical_threshold=check.critical_threshold,
             )
 
         # General system resource monitoring.
@@ -394,13 +398,17 @@ class DiagnosticEngine:
             return DiagnosticFinding(
                 rule_id="RESOURCE_MONITORING",
                 component="resources",
+                severity=severity,
                 title="System resource monitoring unavailable",
                 explanation=check.message,
                 recommendation=(
                     "Check the resource monitoring backend and verify "
                     "that CPU and memory information can be read."
                 ),
-                **common,
+                observed_value=check.value,
+                unit=check.unit,
+                warning_threshold=check.warning_threshold,
+                critical_threshold=check.critical_threshold,
             )
 
         # GPU monitoring backend or device detection.
@@ -408,26 +416,34 @@ class DiagnosticEngine:
             return DiagnosticFinding(
                 rule_id="GPU_MONITORING",
                 component=DiagnosticEngine._gpu_component(check.name),
+                severity=severity,
                 title=f"GPU monitoring unavailable: {check.name}",
                 explanation=check.message,
                 recommendation=(
                     "Check GPU detection, driver status and monitoring "
                     "backend availability."
                 ),
-                **common,
+                observed_value=check.value,
+                unit=check.unit,
+                warning_threshold=check.warning_threshold,
+                critical_threshold=check.critical_threshold,
             )
 
         # Unknown or newly introduced health checks.
         return DiagnosticFinding(
             rule_id="UNCLASSIFIED_HEALTH_ISSUE",
             component=check.name,
+            severity=severity,
             title=f"Unclassified issue: {check.name}",
             explanation=check.message,
             recommendation=(
                 "Inspect the affected component and its monitoring data. "
                 "A dedicated diagnostic rule may be required."
             ),
-            **common,
+            observed_value=check.value,
+            unit=check.unit,
+            warning_threshold=check.warning_threshold,
+            critical_threshold=check.critical_threshold,
         )
 
     def diagnose(self, report: HealthReport) -> DiagnosticReport:

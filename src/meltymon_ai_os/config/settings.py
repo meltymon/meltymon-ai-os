@@ -1,10 +1,8 @@
 import os
-
 from pathlib import Path
 from urllib.parse import urlsplit
 
 import yaml
-
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -56,16 +54,31 @@ def load_settings(
 
     if config_path.exists():
         with config_path.open("r", encoding="utf-8") as file:
-            data = yaml.safe_load(file) or {}
+            data = yaml.safe_load(file)
     else:
         data = {}
 
+    if data is None:
+        data = {}
+
     if not isinstance(data, dict):
-        raise ValueError("Configuration root must be a YAML mapping")
+        raise TypeError("Configuration root must be a YAML mapping")
 
     data = dict(data)
-    data["ollama"] = dict(data.get("ollama") or {})
-    data["models"] = dict(data.get("models") or {})
+
+    for section_name in ("ollama", "models"):
+        if section_name not in data:
+            data[section_name] = {}
+            continue
+
+        section = data[section_name]
+
+        if not isinstance(section, dict):
+            raise TypeError(
+                f"Configuration section '{section_name}' must be a YAML mapping"
+            )
+
+        data[section_name] = dict(section)
 
     # Environment variables override YAML settings.
     if value := os.getenv("MELTYMON_OLLAMA_BASE_URL"):

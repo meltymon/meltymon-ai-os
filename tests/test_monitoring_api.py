@@ -1,10 +1,8 @@
-
 """Tests for the public MELTYMON AI OS monitoring API."""
 
 import asyncio
 import json
-
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from meltymon_ai_os.monitoring.api import MonitoringAPI
 from meltymon_ai_os.monitoring.system import SystemSnapshot
@@ -25,9 +23,7 @@ class FakeSystemMonitor:
 def create_snapshot() -> SystemSnapshot:
     """Create a representative system snapshot."""
     return SystemSnapshot(
-        timestamp=datetime(
-            2026, 11, 2, 18, 30, tzinfo=timezone.utc
-        ),
+        timestamp=datetime(2026, 11, 2, 18, 30, tzinfo=UTC),
         resources=None,
         numa=None,
         gpu=None,
@@ -57,9 +53,7 @@ def test_api_returns_snapshot_as_dictionary():
     assert result["resources"] is None
     assert result["numa"] is None
     assert result["gpu"] is None
-    assert result["errors"] == {
-        "gpu": "GPU unavailable"
-    }
+    assert result["errors"] == {"gpu": "GPU unavailable"}
     assert result["timestamp"] == snapshot.timestamp.isoformat()
     assert monitor.call_count == 1
 
@@ -84,9 +78,7 @@ def test_api_supports_compact_json():
     monitor = FakeSystemMonitor(snapshot)
     api = MonitoringAPI(monitor=monitor)
 
-    result = asyncio.run(
-        api.get_snapshot_json(indent=None)
-    )
+    result = asyncio.run(api.get_snapshot_json(indent=None))
 
     assert "\n" not in result
     assert json.loads(result)["errors"]["gpu"] == "GPU unavailable"

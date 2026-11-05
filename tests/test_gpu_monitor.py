@@ -1,6 +1,6 @@
 """Tests for hardware-independent GPU monitoring."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
@@ -55,7 +55,7 @@ class FakeGPUBackend(BaseGPUBackend):
             raise self.collect_errors[gpu.device_id]
 
         return GPUSnapshot(
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
             gpu=gpu,
             utilization_percent=45.0,
             memory_used_bytes=4 * 1024**3,
@@ -93,7 +93,7 @@ def test_gpu_snapshot_memory_percent():
     gpu = create_gpu("Test GPU", "0000:01:00.0")
 
     snapshot = GPUSnapshot(
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         gpu=gpu,
         memory_used_bytes=4 * 1024**3,
         memory_total_bytes=8 * 1024**3,
@@ -106,7 +106,7 @@ def test_gpu_snapshot_without_memory_information():
     gpu = create_gpu("Test GPU", "0000:01:00.0")
 
     snapshot = GPUSnapshot(
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
         gpu=gpu,
     )
 
@@ -152,10 +152,7 @@ async def test_gpu_monitor_collects_multiple_gpus():
     snapshots = await monitor.collect()
 
     assert len(snapshots) == 3
-    assert [
-        snapshot.gpu.device_id
-        for snapshot in snapshots
-    ] == [
+    assert [snapshot.gpu.device_id for snapshot in snapshots] == [
         "0000:01:00.0",
         "0000:02:00.0",
         "0000:03:00.0",
@@ -182,30 +179,21 @@ async def test_gpu_monitor_isolates_device_collection_errors():
     snapshots = await monitor.collect()
 
     assert len(snapshots) == 2
-    assert {
-        snapshot.gpu.device_id
-        for snapshot in snapshots
-    } == {
+    assert {snapshot.gpu.device_id for snapshot in snapshots} == {
         "0000:01:00.0",
         "0000:03:00.0",
     }
 
     assert "gpu.0000:02:00.0" in monitor.errors
-    assert "Telemetry unavailable" in monitor.errors[
-        "gpu.0000:02:00.0"
-    ]
+    assert "Telemetry unavailable" in monitor.errors["gpu.0000:02:00.0"]
 
 
 @pytest.mark.asyncio
 async def test_gpu_monitor_isolates_backend_detection_errors():
     working_gpu = create_gpu("Working GPU", "0000:02:00.0")
 
-    broken_backend = FakeGPUBackend(
-        detect_error=RuntimeError("Detection failed")
-    )
-    working_backend = FakeGPUBackend(
-        devices=[working_gpu]
-    )
+    broken_backend = FakeGPUBackend(detect_error=RuntimeError("Detection failed"))
+    working_backend = FakeGPUBackend(devices=[working_gpu])
 
     monitor = GPUMonitor(
         backends=[

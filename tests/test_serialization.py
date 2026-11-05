@@ -1,10 +1,8 @@
-
 """Tests for MELTYMON AI OS monitoring serialization."""
 
 import json
-
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from enum import Enum
 from pathlib import Path
 
@@ -46,9 +44,7 @@ class ExampleData:
 
 
 def test_serialize_dataclass():
-    timestamp = datetime(
-        2026, 11, 2, 18, 30, tzinfo=timezone.utc
-    )
+    timestamp = datetime(2026, 11, 2, 18, 30, tzinfo=UTC)
 
     data = ExampleData(
         name="MELTYMON",
@@ -79,9 +75,7 @@ def test_serialize_date():
 
 
 def test_serialize_datetime():
-    value = datetime(
-        2026, 11, 2, 18, 30, tzinfo=timezone.utc
-    )
+    value = datetime(2026, 11, 2, 18, 30, tzinfo=UTC)
 
     assert to_primitive(value) == value.isoformat()
 
@@ -140,7 +134,7 @@ def test_reject_non_finite_float_values(value):
 
 
 def test_snapshot_to_dict():
-    timestamp = datetime.now(timezone.utc)
+    timestamp = datetime.now(UTC)
 
     snapshot = SystemSnapshot(
         timestamp=timestamp,
@@ -161,7 +155,7 @@ def test_snapshot_to_dict():
 
 def test_snapshot_to_json():
     snapshot = SystemSnapshot(
-        timestamp=datetime(2026, 11, 2, tzinfo=timezone.utc),
+        timestamp=datetime(2026, 11, 2, tzinfo=UTC),
         resources=None,
         numa=None,
         gpu=None,
@@ -180,7 +174,7 @@ def test_snapshot_to_json():
 
 def test_snapshot_to_json_without_indentation():
     snapshot = SystemSnapshot(
-        timestamp=datetime(2026, 11, 2, tzinfo=timezone.utc),
+        timestamp=datetime(2026, 11, 2, tzinfo=UTC),
         resources=None,
         numa=None,
         gpu=None,
@@ -201,9 +195,7 @@ def test_snapshot_to_dict_rejects_non_dictionary_result():
 def create_multi_gpu_snapshot():
     """Create a system snapshot containing two different GPUs."""
 
-    timestamp = datetime(
-        2026, 11, 2, 18, 30, tzinfo=timezone.utc
-    )
+    timestamp = datetime(2026, 11, 2, 18, 30, tzinfo=UTC)
 
     intel_gpu = GPUSnapshot(
         timestamp=timestamp,
@@ -312,17 +304,13 @@ def test_snapshot_to_json_serializes_multiple_gpus():
     assert parsed["gpu"][1]["gpu"]["device_id"] == "10de:2684"
     assert parsed["gpu"][1]["gpu"]["name"] == "NVIDIA GeForce RTX"
 
-    assert parsed["gpu"][0]["timestamp"] == (
-        snapshot.gpu[0].timestamp.isoformat()
-    )
-    assert parsed["gpu"][1]["timestamp"] == (
-        snapshot.gpu[1].timestamp.isoformat()
-    )
+    assert parsed["gpu"][0]["timestamp"] == (snapshot.gpu[0].timestamp.isoformat())
+    assert parsed["gpu"][1]["timestamp"] == (snapshot.gpu[1].timestamp.isoformat())
 
 
 def test_snapshot_to_dict_preserves_empty_gpu_collection():
     snapshot = SystemSnapshot(
-        timestamp=datetime(2026, 11, 2, tzinfo=timezone.utc),
+        timestamp=datetime(2026, 11, 2, tzinfo=UTC),
         resources=None,
         numa=None,
         gpu=(),
