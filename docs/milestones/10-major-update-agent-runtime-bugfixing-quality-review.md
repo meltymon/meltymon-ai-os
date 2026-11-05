@@ -108,7 +108,7 @@ The complete test suite was executed successfully.
 
 A dedicated review script was introduced at:
 
-` scripts/review.py `
+`scripts/review.py`
 
 The review workflow covers:
 
