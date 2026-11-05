@@ -331,7 +331,8 @@ The project documentation is organized into architecture, development history, t
 | [Development History](docs/DEVELOPMENT.md) | Implementation history and development progress |
 | [Testing Strategy](docs/TESTING.md) | Test organization, quality assurance, and validation |
 | [Milestone 10 – Major Update and Quality Review](docs/milestones/10-major-update-agent-runtime-bugfixing-quality-review.md) | Agent Runtime, Execution Layer, orchestration, stabilization, and quality review |
-| [Roadmap](ROADMAP.md) | Long-term development direction and planned features |\n| [Project TODO](TODO.md) | Prioritized actionable tasks, dependencies, and acceptance criteria |
+| [Roadmap](ROADMAP.md) | Long-term development direction and planned features |
+| [Project TODO](TODO.md) | Prioritized actionable tasks, dependencies, and acceptance criteria |
 | [Changelog](CHANGELOG.md) | Project changes and development history |
 | [Contributing](CONTRIBUTING.md) | Contribution guidelines |
 | [License](LICENSE) | Apache License 2.0 |
