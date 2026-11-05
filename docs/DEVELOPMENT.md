@@ -31,7 +31,7 @@ The project follows a modular architecture so that individual subsystems can evo
 
 The following timeline is based on the actual Git commit history.
 
-All listed commits were created on November 2, 2026.
+The initial implementation commits are dated November 2, 2026. Later documentation, security, CI, audit, and agent-runtime work followed in the order shown below.
 
 | Commit | Development milestone |
 |---|---|
@@ -44,6 +44,11 @@ All listed commits were created on November 2, 2026.
 | `f18dda2` | System health evaluation |
 | `5ea43c0` | Rule-based diagnostic engine |
 | `d31cc37` | Multi-GPU monitoring and diagnostics hardening |
+| `f19520d` | Complete project documentation and project metadata |
+| `03aa03b` | Security policy and community contribution templates |
+| `4e016f7` | GitHub community infrastructure and CI pipeline |
+| `51d829f` | Technical audit and monitoring architecture decision records |
+| `c7f57dc` | Major update: Agent Runtime, Execution Layer, Orchestration, bug fixing, and quality review |
 
 No official Git release tags have been created yet.
 
@@ -447,7 +452,59 @@ The monitoring subsystem gained a more robust multi-GPU architecture with improv
 
 ---
 
-## 12. Testing and Quality Assurance
+## 12. Milestone 10 – Major Update: Agent Runtime, Execution, Orchestration and Quality Assurance
+
+**Commit:** `c7f57dc` · **Date:** 2026-11-05
+**Commit message:** `feat: implement agent runtime, execution layer, and orchestration foundations`
+
+### Objective
+
+Extend the established monitoring and local-AI foundation with initial agent execution and orchestration capabilities while conducting a substantial stabilization, bug-fixing, regression-testing, and project-wide quality review cycle.
+
+### Agent Runtime
+
+The initial runtime introduces shared agent interfaces, capability declarations, execution context, lifecycle handling, agent-specific exceptions, and structured results. Declared capabilities are descriptive and do not constitute an authorization system.
+
+### Execution Layer
+
+The execution layer introduces an execution manager, policies, structured reports, parallel batch execution, fail-fast behavior, and batch timeouts. Cancellation is cooperative through asyncio; it does not guarantee termination of arbitrary blocking operations or provide hard process isolation.
+
+### Orchestration
+
+The orchestration foundation includes an orchestration engine, an agent registry, orchestration-specific exceptions, and factory-based agent creation. The registry stores factories rather than persistent running instances. Complete end-to-end integration across agents, model selection, execution, monitoring, and recovery remains future work.
+
+### Stabilization and regression coverage
+
+Existing configuration, Ollama backend, model catalog, CPU and memory monitoring, NUMA, Intel GPU monitoring, serialization, health evaluation, diagnostics, monitoring service, and public Python API components were reviewed and refined. Regression tests cover the new runtime and execution components as well as existing platform behavior.
+
+### Automated quality assurance
+
+The development cycle expanded the automated test suite and introduced a dedicated review workflow in `scripts/review.py`. The documented review covers repository and patch integrity, linting, formatting, static typing, tests and branch coverage, static security analysis, dependency auditing, package building, wheel import smoke testing, and package metadata validation.
+
+The recorded review snapshot from November 5, 2026 reports:
+
+| Metric | Result |
+|---|---:|
+| Tests passed | 491 |
+| Statement coverage | 96.79% |
+| Branch coverage | 91.50% |
+| Review checks passed | 16 |
+| Failed review checks | 0 |
+| Skipped review checks | 0 |
+
+These are results from the documented run, not a guarantee of production readiness or future error-free operation. The development process also repeatedly executed the test and review suites; the reported several-thousand executions are a development-history statement and are not independently counted by the final report.
+
+### Implementation boundaries
+
+This milestone establishes foundations rather than a complete autonomous-agent platform. Full integration with Ollama, model selection, resource-aware scheduling, persistent agent memory, platform-wide authorization, dedicated persistent auditing, UI, and HTTP/REST API remain incomplete or planned. The memory, security, audit, and validation packages remain structural foundations where noted by the milestone record.
+
+### Result
+
+The project gained initial agent runtime, execution, and orchestration foundations alongside substantial bug fixing, regression coverage, and a reproducible local quality-review workflow.
+
+---
+
+## 13. Testing and Quality Assurance
 
 Testing is an essential part of the development process.
 
@@ -560,7 +617,7 @@ The following limitations are important to understand:
 - NVIDIA and AMD GPU monitoring backends are not yet implemented.
 - Available hardware telemetry depends on the device, driver, and operating system interfaces.
 - Health evaluation and diagnostics provide an initial rule-based foundation.
-- Agent execution and AI orchestration are not yet implemented.
+- Agent Runtime, Execution Layer, and Orchestration have initial implementations; complete end-to-end integration remains future work.
 - Persistent memory and security enforcement are planned areas of development.
 - A complete management interface does not yet exist.
 
