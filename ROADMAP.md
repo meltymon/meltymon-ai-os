@@ -304,6 +304,7 @@ The current implementation status is documented in:
 - [Development History](docs/DEVELOPMENT.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Testing Strategy](docs/TESTING.md)
+- [Project TODO](TODO.md)
 
 Detailed technical milestones and architecture decisions will be documented separately.
 
