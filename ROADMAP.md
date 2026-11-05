@@ -232,6 +232,8 @@ The project prioritizes transparency, modularity, reliability, and user control.
 
 **Goal:** Establish security boundaries and transparent execution.
 
+The Agent Runtime's capability declarations and the Execution Layer's scheduling policies are not authorization controls. A complete permission and approval enforcement system, together with durable audit logging, remains planned.
+
 ### Planned
 
 - [ ] Permission model
