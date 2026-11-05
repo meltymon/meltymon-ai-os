@@ -155,6 +155,20 @@ Check the patch for whitespace errors:
 git diff --check
 ```
 
+Run the consolidated project review workflow before submitting substantial changes:
+
+```fish
+python scripts/review.py
+```
+
+To include the dependency vulnerability audit:
+
+```fish
+python scripts/review.py --audit-dependencies
+```
+
+The review workflow runs the configured lint, formatting, type, test, security, package-build, wheel-import, and metadata checks. Dependency auditing is enabled explicitly with `--audit-dependencies`.
+
 If a change affects existing functionality, please add or update tests accordingly.
 
 Tests should use mocks and temporary resources where possible. They should not modify the host system or depend on specific hardware unless the test is explicitly designed as a hardware integration test.
