@@ -354,6 +354,7 @@ The milestone documents describe the implementation status, technical scope, lim
 4. [Milestone 04 – Hardware Monitoring](docs/milestones/04-hardware-monitoring.md)
 5. [Milestone 05 – Health and Diagnostics](docs/milestones/05-health-and-diagnostics.md)
 6. [Milestone 06 – Testing and Quality](docs/milestones/06-testing-and-quality.md)
+7. [Milestone 10 – Major Update, Agent Runtime, Orchestration and Quality Review](docs/milestones/10-major-update-agent-runtime-bugfixing-quality-review.md)
 
 ---
 
@@ -369,12 +370,13 @@ Future development areas include:
 
 - Additional AI backend integrations.
 - NVIDIA and AMD GPU monitoring.
-- Agent architecture and lifecycle management.
-- AI task planning and orchestration.
+- End-to-end integration of Agent Runtime, Ollama, model catalog, and monitoring.
+- Resource-aware model selection and workload scheduling.
+- Agent-to-agent coordination and task planning.
 - Persistent memory and context management.
-- Security policies and auditing.
+- Enforced authorization, approval workflows, and durable auditing.
 - Management interfaces and monitoring dashboards.
-- Integration, performance, and compatibility testing.
+- Integration, performance, failure-recovery, and compatibility testing.
 
 ---
 
@@ -402,6 +404,6 @@ See the [LICENSE](LICENSE) file for the complete license text.
 
 MELTYMON AI OS is being developed as an independent open-source project.
 
-The current focus is on building a reliable core, local AI backend integration, and hardware monitoring foundation before expanding into agents, orchestration, memory, and higher-level AI functionality.
+The current implementation includes the core infrastructure, local Ollama integration, hardware monitoring, health evaluation, diagnostics, Agent Runtime, Execution Layer, and initial orchestration. The next focus is integration and stabilization; persistent memory, enforced security, and a management interface remain future work.
 
 The goal is to build this step by step, with a strong emphasis on modularity, transparency, reliability, and long-term maintainability.
