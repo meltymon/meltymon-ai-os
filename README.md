@@ -7,7 +7,7 @@ MELTYMON AI OS is an open-source project focused on building a modular platform 
 
 The project aims to connect local AI models, hardware resources, monitoring, agents, memory, orchestration, and security in one coherent platform.
 
-> **Project status:** Early development — Core infrastructure, Ollama integration, model management, hardware monitoring, health evaluation, and diagnostics have an initial implementation. This is not yet a complete AI agent platform.
+> **Project status:** Early development — Core infrastructure, Ollama integration, model management, hardware monitoring, health evaluation, diagnostics, Agent Runtime, Execution Layer, and initial agent orchestration are implemented. Full end-to-end integration is still in development. This is not yet a complete AI agent platform.
 
 [Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Development History](docs/DEVELOPMENT.md) · [Contributing](CONTRIBUTING.md) · [License](LICENSE)
 
@@ -52,6 +52,9 @@ The following components have an initial implementation in the current developme
 | Monitoring service | Integration of snapshots, health evaluation, and diagnostics |
 | Monitoring API | Public interface for monitoring information |
 | Serialization | Conversion of monitoring data into dictionaries and JSON |
+| Agent Runtime | Agent base class, immutable context and results, capabilities, lifecycle, and structured failures |
+| Execution Layer | Bounded concurrent execution, fail-fast policy, batch timeouts, and immutable reports |
+| Orchestration | Factory-based agent registry and asynchronous dispatch |
 
 ### Hardware Monitoring
 
@@ -100,6 +103,12 @@ The project uses a modular Python package structure.
 ```text
 src/meltymon_ai_os/
 ├── agents/
+│   ├── base.py
+│   ├── capabilities.py
+│   ├── context.py
+│   ├── exceptions.py
+│   ├── lifecycle.py
+│   └── result.py
 ├── audit/
 ├── backends/
 │   ├── base.py
@@ -107,6 +116,10 @@ src/meltymon_ai_os/
 ├── config/
 │   ├── settings.py
 │   └── settings.yaml
+├── execution/
+│   ├── manager.py
+│   ├── policy.py
+│   └── report.py
 ├── memory/
 ├── models/
 │   ├── catalog.py
@@ -123,6 +136,9 @@ src/meltymon_ai_os/
 │   ├── service.py
 │   └── system.py
 ├── orchestrator/
+│   ├── engine.py
+│   ├── exceptions.py
+│   └── registry.py
 ├── security/
 └── validation/
 ```
@@ -154,6 +170,32 @@ GPU Backends ──────┤
 ```
 
 The monitoring service combines collected system information with health assessments and diagnostic findings.
+
+### Agent Execution Flow
+
+```text
+AgentContext
+     │
+     ▼
+ExecutionManager ── ExecutionPolicy
+     │
+     ▼
+Orchestrator
+     │
+     ▼
+AgentRegistry ── Factory
+     │
+     ▼
+AgentBase ── Lifecycle / Capabilities
+     │
+     ▼
+AgentResult
+     │
+     ▼
+ExecutionRecord / ExecutionReport
+```
+
+This is an initial execution foundation. Agent execution is not yet automatically connected to Ollama model selection, hardware-aware scheduling, monitoring feedback, persistent memory, or a platform-wide authorization service.
 
 For more information, see the [Architecture Documentation](docs/ARCHITECTURE.md).
 
@@ -268,7 +310,7 @@ Before submitting changes, also check the patch for whitespace errors:
 git diff --check
 ```
 
-The verified test baseline during the current documentation cycle is **133 passed**. This is a development snapshot, not a release certification.
+The latest documented test run for Milestone 10 (November 5, 2026) reports **491 passed**, with 96.79% statement coverage and 91.50% branch coverage. The earlier 133-test baseline from November 2 is historical. These results are snapshots, not a release certification.
 
 See the [Testing Strategy](docs/TESTING.md) for more information.
 
@@ -285,6 +327,7 @@ The project documentation is organized into architecture, development history, t
 | [Architecture](docs/ARCHITECTURE.md) | System structure, components, and data flow |
 | [Development History](docs/DEVELOPMENT.md) | Implementation history and development progress |
 | [Testing Strategy](docs/TESTING.md) | Test organization, quality assurance, and validation |
+| [Milestone 10 – Major Update and Quality Review](docs/milestones/10-major-update-agent-runtime-bugfixing-quality-review.md) | Agent Runtime, Execution Layer, orchestration, stabilization, and quality review |
 | [Roadmap](ROADMAP.md) | Long-term development direction and planned features |
 | [Changelog](CHANGELOG.md) | Project changes and development history |
 | [Contributing](CONTRIBUTING.md) | Contribution guidelines |
