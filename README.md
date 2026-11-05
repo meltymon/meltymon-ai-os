@@ -148,32 +148,28 @@ Some package directories are currently architectural scaffolding. Their presence
 ### Monitoring Flow
 
 ```text
-System Resources ─┐
-NUMA Monitor ──────┤
-GPU Backends ──────┤
-                  ▼
-             SystemMonitor
-                  │
-                  ▼
-             SystemSnapshot
-                  │
-                  ▼
-          HealthEvaluator
-                  │
-                  ▼
-             HealthReport
-                  │
-                  ▼
-          DiagnosticEngine
-                  │
-                  ▼
-           DiagnosticReport
-                  │
-                  ▼
-           MonitoringService
-                  │
-                  ▼
-            MonitoringResult
+                 MonitoringService.collect()
+                            │
+                            ▼
+System Resources ─┐    SystemMonitor
+NUMA Monitor ──────┤         │
+GPU Backends ──────┘         ▼
+                      SystemSnapshot
+                            │
+                            ▼
+                     HealthEvaluator
+                            │
+                            ▼
+                       HealthReport
+                            │
+                            ▼
+                     DiagnosticEngine
+                            │
+                            ▼
+                     DiagnosticReport
+                            │
+                            ▼
+                    MonitoringResult
 ```
 
 The monitoring service combines collected system information with health assessments and diagnostic findings.
