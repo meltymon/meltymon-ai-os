@@ -563,7 +563,7 @@ The second checks Git changes for whitespace errors and related patch issues.
 
 ---
 
-## 13. Architectural Lessons
+## 14. Architectural Lessons
 
 Several important engineering principles have emerged from the implementation so far.
 
@@ -605,7 +605,7 @@ Local execution and user control remain central design principles.
 
 ---
 
-## 14. Current Technical Limitations
+## 15. Current Technical Limitations
 
 MELTYMON AI OS is still in an early development stage.
 
@@ -625,7 +625,7 @@ These limitations are part of the current development status and should not be c
 
 ---
 
-## 15. Next Development Direction
+## 16. Next Development Direction
 
 The next development stages focus on stabilizing the existing foundation and expanding its capabilities.
 
@@ -643,7 +643,7 @@ The current implementation and future priorities are tracked in the [project roa
 
 ---
 
-## 16. Documentation
+## 17. Documentation
 
 Related project documentation:
 
