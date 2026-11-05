@@ -9,7 +9,7 @@ The project aims to connect local AI models, hardware resources, monitoring, age
 
 > **Project status:** Early development — Core infrastructure, Ollama integration, model management, hardware monitoring, health evaluation, diagnostics, Agent Runtime, Execution Layer, and initial agent orchestration are implemented. Full end-to-end integration is still in development. This is not yet a complete AI agent platform.
 
-[Roadmap](ROADMAP.md) · [Changelog](CHANGELOG.md) · [Development History](docs/DEVELOPMENT.md) · [Contributing](CONTRIBUTING.md) · [License](LICENSE)
+[Roadmap](ROADMAP.md) · [Project TODO](TODO.md) · [Changelog](CHANGELOG.md) · [Development History](docs/DEVELOPMENT.md) · [Contributing](CONTRIBUTING.md) · [License](LICENSE)
 
 ---
 
@@ -331,7 +331,7 @@ The project documentation is organized into architecture, development history, t
 | [Development History](docs/DEVELOPMENT.md) | Implementation history and development progress |
 | [Testing Strategy](docs/TESTING.md) | Test organization, quality assurance, and validation |
 | [Milestone 10 – Major Update and Quality Review](docs/milestones/10-major-update-agent-runtime-bugfixing-quality-review.md) | Agent Runtime, Execution Layer, orchestration, stabilization, and quality review |
-| [Roadmap](ROADMAP.md) | Long-term development direction and planned features |
+| [Roadmap](ROADMAP.md) | Long-term development direction and planned features |\n| [Project TODO](TODO.md) | Prioritized actionable tasks, dependencies, and acceptance criteria |
 | [Changelog](CHANGELOG.md) | Project changes and development history |
 | [Contributing](CONTRIBUTING.md) | Contribution guidelines |
 | [License](LICENSE) | Apache License 2.0 |
