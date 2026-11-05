@@ -157,11 +157,18 @@ GPU Backends ──────┤
                   ▼
              SystemSnapshot
                   │
-          ┌───────┴────────┐
-          ▼                ▼
-    HealthEvaluator  DiagnosticEngine
-          │                │
-          └───────┬────────┘
+                  ▼
+          HealthEvaluator
+                  │
+                  ▼
+             HealthReport
+                  │
+                  ▼
+          DiagnosticEngine
+                  │
+                  ▼
+           DiagnosticReport
+                  │
                   ▼
            MonitoringService
                   │
