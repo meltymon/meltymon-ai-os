@@ -1,9 +1,9 @@
 
 # Milestone 06 – Testing and Quality
 
-- **Status:** Active development
+- **Status:** Historical baseline; superseded by Milestone 10
 - **Development date:** 2026-11-02
-- **Verified test baseline:** 133 passed
+- **Historical test baseline:** 133 passed
 
 ## Objective
 
@@ -97,13 +97,13 @@ pytest --cov=meltymon_ai_os --cov-report=term-missing
 git diff --check
 ```
 
-## Current Test Baseline
+## Historical Test Baseline
 
-The verified baseline during this documentation cycle is:
+The test baseline recorded for this milestone on November 2, 2026 was:
 
 **133 passed**
 
-This is a development snapshot, not a release certification.
+This is a historical development snapshot, not the current test count or a release certification. The later Milestone 10 review snapshot (November 5, 2026) reports **491 passed**, with 96.79% statement coverage and 91.50% branch coverage. See [Milestone 10 – Major Update and Quality Review](10-major-update-agent-runtime-bugfixing-quality-review.md) and the current [Testing Strategy](../TESTING.md) for the later results.
 
 Test counts may change as new functionality and regression tests are added.
 
@@ -124,7 +124,7 @@ The testing strategy follows these principles:
 - Performance and load testing are planned.
 - Extended compatibility testing across Linux distributions is planned.
 - Hardware-specific integration testing requires access to the corresponding devices.
-- Security testing will expand as agent execution and orchestration are implemented.
+- Security and permission testing will expand as enforced authorization and protected agent actions are implemented.
 
 ## Future Improvements
 
@@ -135,7 +135,7 @@ The testing strategy follows these principles:
 - Linux distribution compatibility testing
 - Hardware-specific integration tests
 - Security and permission testing
-- Automated quality checks in CI
+- Broader automated quality checks in CI
 - Release validation workflow
 
 ## Result
