@@ -660,6 +660,15 @@ Related project documentation:
 
 MELTYMON AI OS is under active development.
 
-The current implementation provides a foundation for local AI integration, hardware monitoring, system health evaluation, diagnostics, and monitoring APIs.
+The current implementation provides the following functional foundations:
 
-The long-term objective is to build on this foundation to create a reliable, hardware-aware, local-first AI orchestration platform.
+- Local AI backend integration through Ollama and a normalized model catalog.
+- CPU, memory, NUMA, and Intel GPU monitoring.
+- System health evaluation, rule-based diagnostics, and a public monitoring API.
+- An initial Agent Runtime with explicit lifecycle, context, capability metadata, and structured results.
+- Bounded asynchronous batch execution with concurrency, timeout, failure, and cooperative-cancellation handling.
+- Initial agent orchestration through a factory-based registry and dispatch engine.
+
+These components are not yet connected into a complete end-to-end autonomous-agent workflow. In particular, model invocation from agents, resource-aware scheduling, persistent memory, enforced authorization and approvals, durable audit logging, and a complete management interface remain future work.
+
+The long-term objective is to build on these foundations to create a reliable, hardware-aware, local-first AI orchestration platform.
