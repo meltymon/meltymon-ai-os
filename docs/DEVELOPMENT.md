@@ -625,17 +625,17 @@ These limitations are part of the current development status and should not be c
 
 ## 16. Next Development Direction
 
-The next development stages focus on stabilizing the existing foundation and expanding its capabilities.
+The next development stages focus on integrating and stabilizing the foundations delivered through Milestone 10.
 
 Priority areas include:
 
-1. Improving core interfaces and configuration.
-2. Expanding model metadata and backend abstractions.
-3. Extending hardware monitoring.
-4. Improving health evaluation and diagnostics.
-5. Establishing agent interfaces.
-6. Introducing resource-aware AI orchestration.
-7. Developing persistent memory and security capabilities.
+1. End-to-end integration between Agent Runtime, Ollama, Model Catalog, Execution Layer, and MonitoringService.
+2. Integration tests for complete execution paths and failure recovery.
+3. Resource-aware model selection and workload scheduling.
+4. Agent-to-agent coordination and task planning.
+5. Persistent memory and context management.
+6. Enforced authorization, approval workflows, and durable auditing.
+7. Operational interfaces, compatibility, and release preparation.
 
 The current implementation and future priorities are tracked in the [project roadmap](../ROADMAP.md).
 
