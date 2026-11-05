@@ -346,7 +346,7 @@ Architecture Decision Records document important technical decisions and their r
 
 ### Implementation Milestones
 
-The milestone documents describe the implementation status, technical scope, limitations, and future improvements of individual development areas.
+The files below are topic-oriented implementation documents. Their numbering groups documentation areas and is not the chronological milestone sequence in [Development History](docs/DEVELOPMENT.md). For the chronological project timeline and commit references, use the Development History; Milestone 10 is the shared major Agent Runtime and quality milestone.
 
 1. [Milestone 01 – Core Infrastructure](docs/milestones/01-core.md)
 2. [Milestone 02 – Model Management](docs/milestones/02-model-management.md)
