@@ -840,15 +840,15 @@ Deklarierte Capabilities beschreiben die Fähigkeiten eines Agenten. Sie stellen
 
 ### 16.3 Execution Layer
 
-Der `ExecutionManager` steuert die parallele Ausführung mehrerer Agenten unter Berücksichtigung einer konfigurierten Parallelitätsgrenze und optionaler Batch-Timeouts.
+Der `ExecutionManager` steuert die parallele Ausführung mehrerer Agenten unter Berücksichtigung einer konfigurierten Parallelitätsgrenze und optionaler Batch-Timeouts. Die Standardrichtlinie erlaubt bis zu vier gleichzeitige Ausführungen, setzt `continue_on_error=True` und definiert standardmäßig keinen Batch-Timeout.
 
-Ausführungen werden in unveränderlichen Records und Reports dokumentiert. Bei aktiviertem Fail-fast setzt der Manager nach einem fehlgeschlagenen Agentenergebnis oder einem unerwarteten Ausführungsfehler ein Stop-Signal. Aufgaben, die danach erst den Semaphore-Zugriff erhalten, werden als `CANCELLED` protokolliert, ohne an den Orchestrator dispatcht zu werden. Bereits laufende Aufgaben werden nicht automatisch abgebrochen und können regulär enden.
+Die Ergebnis-Records werden unabhängig von der tatsächlichen Abschlussreihenfolge in der ursprünglichen Eingabereihenfolge im Report abgelegt. Ausführungen werden in unveränderlichen Records und Reports dokumentiert. Bei aktiviertem Fail-fast setzt der Manager nach einem fehlgeschlagenen Agentenergebnis oder einem unerwarteten Ausführungsfehler ein Stop-Signal. Aufgaben, die danach erst den Semaphore-Zugriff erhalten, werden als `CANCELLED` protokolliert, ohne an den Orchestrator dispatcht zu werden. Bereits laufende Aufgaben werden nicht automatisch abgebrochen und können regulär enden.
 
 Bei einem Batch-Timeout werden ausstehende Aufgaben abgebrochen und ihre Bereinigung abgewartet. Auch hier hängt die tatsächliche Beendigung von der kooperativen Cancellation der jeweiligen Agenten ab.
 
 ### 16.4 Orchestrierung und Agentenregistrierung
 
-Der `AgentRegistry` verwaltet Agentenfabriken anstelle dauerhaft gespeicherter Agenteninstanzen. Bei einer Ausführung wird über die registrierte Factory eine neue Instanz erzeugt und auf Typ, Kennung und initialen Lebenszykluszustand geprüft.
+Der `AgentRegistry` verwaltet Agentenfabriken anstelle dauerhaft gespeicherter Agenteninstanzen. Die Zugriffe auf die Registry werden durch einen Thread-Lock geschützt; die Factory selbst wird außerhalb dieses Locks aufgerufen. Bei einer Ausführung wird über die registrierte Factory eine neue Instanz erzeugt und auf Typ, Kennung und initialen Lebenszykluszustand geprüft.
 
 Der `Orchestrator` verbindet Registry und Agent Runtime. Er validiert den Ausführungskontext sowie die zurückgegebenen Ergebnisse und behandelt Orchestrierungsfehler. Cancellation wird an den aufrufenden Ablauf weitergegeben.
 
