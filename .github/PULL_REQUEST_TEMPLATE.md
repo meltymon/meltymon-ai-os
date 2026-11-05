@@ -22,6 +22,8 @@
 - [ ] Existing tests pass.
 - [ ] New tests have been added where necessary.
 - [ ] Tests have been executed locally.
+- [ ] `python scripts/review.py` has been executed for substantial changes, where applicable.
+- [ ] Dependency auditing has been considered when dependencies change.
 
 ## Documentation
 
