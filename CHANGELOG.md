@@ -45,6 +45,8 @@ and adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Corrected Markdown hard-line-break handling in the untracked-file whitespace review. Two or more trailing ASCII spaces are accepted in Markdown files without weakening checks for other whitespace.
+
 - Prevented individual GPU telemetry failures from interrupting collection from other devices.
 - Isolated hardware detection errors from unrelated monitoring components.
 - Improved handling of missing or unavailable telemetry values.

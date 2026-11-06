@@ -200,10 +200,17 @@ def check_untracked_whitespace(untracked: str) -> CheckResult:
             continue
 
         checked += 1
+        is_markdown = path.name.casefold().endswith(
+            (".md", ".markdown", ".md.new", ".markdown.new")
+        )
 
         for line_number, line in enumerate(text.splitlines(), start=1):
-            if line.endswith((" ", "\t")):
-                issues.append(f"{relative_path}:{line_number}")
+            trailing = line[len(line.rstrip(" 	")) :]
+            if not trailing:
+                continue
+            if is_markdown and len(trailing) >= 2 and set(trailing) == {" "}:
+                continue
+            issues.append(f"{relative_path}:{line_number}")
 
     if issues:
         return CheckResult(

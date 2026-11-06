@@ -1044,3 +1044,91 @@ def test_main_dependency_audit_and_coverage_output(
     assert "Audit nicht verfügbar." in output
     assert "Statement-Coverage: 96.85%" in output
     assert "Branch-Coverage: 91.67%" in output
+
+
+# ---------------------------------------------------------------------------
+# Untracked whitespace regression tests
+# ---------------------------------------------------------------------------
+
+
+def test_markdown_hard_line_breaks_are_allowed(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(review, "ROOT", tmp_path)
+
+    markdown = tmp_path / "ARCHITECTURE.md.new"
+    markdown.write_text(
+        "# Architecture  \n**Project:** MELTYMON AI OS  \nNormal line\n",
+        encoding="utf-8",
+    )
+
+    result = review.check_untracked_whitespace("ARCHITECTURE.md.new\0")
+
+    assert result.status == "PASS"
+
+
+def test_trailing_whitespace_in_python_file_fails(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(review, "ROOT", tmp_path)
+    (tmp_path / "example.py").write_text("value = 42  \n", encoding="utf-8")
+
+    result = review.check_untracked_whitespace("example.py\0")
+
+    assert result.status == "FAIL"
+    assert "example.py:1" in result.output
+
+
+def test_single_trailing_space_in_markdown_fails(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(review, "ROOT", tmp_path)
+    (tmp_path / "README.md").write_text("Invalid trailing space \n", encoding="utf-8")
+
+    result = review.check_untracked_whitespace("README.md\0")
+
+    assert result.status == "FAIL"
+    assert "README.md:1" in result.output
+
+
+def test_trailing_tab_in_markdown_fails(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(review, "ROOT", tmp_path)
+    (tmp_path / "README.md").write_text("Invalid trailing tab\t\n", encoding="utf-8")
+
+    result = review.check_untracked_whitespace("README.md\0")
+
+    assert result.status == "FAIL"
+    assert "README.md:1" in result.output
+
+
+def test_binary_and_non_utf8_files_are_skipped(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(review, "ROOT", tmp_path)
+    (tmp_path / "binary.dat").write_bytes(b"\x00\x01\x02")
+    (tmp_path / "invalid.txt").write_bytes(b"\xff\xfe")
+
+    result = review.check_untracked_whitespace("binary.dat\0invalid.txt\0")
+
+    assert result.status == "PASS"
+    assert "0 Textdatei(en) geprüft" in result.note
+    assert "2 Binär- oder Nicht-UTF-8-Datei(en) übersprungen" in result.note
+
+
+def test_missing_untracked_file_fails(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(review, "ROOT", tmp_path)
+
+    result = review.check_untracked_whitespace("missing.md\0")
+
+    assert result.status == "FAIL"
+    assert "missing.md" in result.note
