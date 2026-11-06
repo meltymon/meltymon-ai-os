@@ -284,6 +284,21 @@ python scripts/review.py --audit-dependencies
 
 The review workflow includes repository and patch integrity checks, Ruff linting and formatting, Mypy, pytest with statement and branch coverage, Bandit, optional pip-audit, package building, wheel import smoke testing, and Twine metadata validation. Individual checks depend on the installed development tools and the selected review options.
 
+### Whitespace validation for untracked files
+
+The automated review also checks untracked files for trailing whitespace.
+
+Markdown files (`.md`, `.markdown`, `.md.new`, and `.markdown.new`) may use two or more trailing ASCII spaces to represent CommonMark hard line breaks.
+
+All other trailing whitespace remains an error, including:
+
+- A single trailing space in Markdown files
+- Trailing tabs in Markdown files
+- Mixed trailing spaces and tabs
+- Any trailing whitespace in non-Markdown files
+
+Binary and non-UTF-8 files are skipped by the text-based check. Regression tests cover these rules and missing-file handling.
+
 ---
 
 ## 12. Current Test Baseline

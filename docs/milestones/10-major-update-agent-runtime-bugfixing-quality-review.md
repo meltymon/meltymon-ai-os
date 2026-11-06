@@ -179,3 +179,25 @@ Milestone 10 establishes the first functional foundations for agent execution an
 The project now has a broader modular foundation and a reproducible local review workflow.
 
 The next development stage should focus on integration, resource-aware execution, model selection, security boundaries, persistent memory, and broader end-to-end validation.
+
+## 11. Follow-up – 2026-11-06
+
+The untracked-file whitespace validation in `scripts/review.py` was refined to recognize valid CommonMark hard line breaks in Markdown files. Two or more trailing ASCII spaces are accepted for `.md`, `.markdown`, `.md.new`, and `.markdown.new` files.
+
+The exception is deliberately narrow. Single trailing spaces, trailing tabs, mixed whitespace, and trailing whitespace in non-Markdown files continue to be reported as errors. Binary and non-UTF-8 files are skipped by the text-based check.
+
+Six regression tests cover the accepted Markdown syntax, invalid whitespace cases, binary and non-UTF-8 files, and missing untracked files. The review-specific test module reports 51 passing tests.
+
+The November 6 review run reported:
+
+| Metric | Result |
+|---|---:|
+| Review checks passed | 15 |
+| Failed review checks | 0 |
+| Skipped review checks | 1 |
+| Statement coverage | 96.79% |
+| Branch coverage | 91.50% |
+
+The skipped check was the optional `pip-audit` dependency vulnerability scan, which was not enabled for this run.
+
+These results describe the November 6 follow-up and do not modify the historical November 5 milestone results.

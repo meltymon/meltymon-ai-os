@@ -559,6 +559,14 @@ The first command executes the test suite.
 
 The second checks Git changes for whitespace errors and related patch issues.
 
+### Review workflow regression coverage
+
+The untracked-file whitespace check recognizes valid Markdown hard line breaks consisting of two or more trailing ASCII spaces. This exception applies only to Markdown files; single trailing spaces, tabs, mixed whitespace, and trailing whitespace in other file types remain errors.
+
+Regression tests cover the accepted Markdown syntax and the whitespace cases that must still fail, as well as binary, non-UTF-8, and missing files. The review-specific test module reports 51 passing tests.
+
+The November 6, 2026 review run completed with 15 checks passed, zero failures, and one intentionally skipped optional dependency audit. Statement coverage was 96.79% and branch coverage was 91.50%.
+
 ---
 
 ## 14. Architectural Lessons
