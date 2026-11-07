@@ -7,7 +7,7 @@ MELTYMON AI OS is an open-source project focused on building a modular platform 
 
 The project aims to connect local AI models, hardware resources, monitoring, agents, memory, orchestration, and security in one coherent platform.
 
-> **Project status:** Early development — Core infrastructure, Ollama integration, model management, hardware monitoring, health evaluation, diagnostics, Agent Runtime, Execution Layer, and initial agent orchestration are implemented. Full end-to-end integration is still in development. This is not yet a complete AI agent platform.
+> **Project status:** Early development — Core infrastructure, Ollama integration, model management, hardware monitoring, health evaluation, diagnostics, Agent Runtime, Execution Layer, and initial agent orchestration are implemented. A tested, explicitly wired Agent-to-Ollama reference path is available; general platform-level integration, automatic model selection, resource-aware scheduling, and autonomous multi-agent workflows remain in development. This is not yet a complete AI agent platform.
 
 [Roadmap](ROADMAP.md) · [Project TODO](TODO.md) · [Changelog](CHANGELOG.md) · [Development History](docs/DEVELOPMENT.md) · [Contributing](CONTRIBUTING.md) · [License](LICENSE)
 
@@ -194,7 +194,7 @@ The monitoring service combines collected system information with health assessm
 
 The diagram illustrates the current execution path from request context through policy-controlled dispatch and agent execution to a structured result and execution report.
 
-This is an initial execution foundation. Agent execution is not yet automatically connected to Ollama model selection, hardware-aware scheduling, monitoring feedback, persistent memory, or a platform-wide authorization service.
+The repository also includes a tested reference example that explicitly injects an Ollama backend into a prompt agent and runs it through the execution and orchestration layers. This demonstrates one vertical slice, not automatic platform-wide wiring. Agent execution is not yet automatically connected to model selection, hardware-aware scheduling, monitoring feedback, persistent memory, or a platform-wide authorization service.
 
 For more information, see the [Architecture Documentation](docs/ARCHITECTURE.md).
 
@@ -367,7 +367,7 @@ Future development areas include:
 
 - Additional AI backend integrations.
 - NVIDIA and AMD GPU monitoring.
-- End-to-end integration of Agent Runtime, Ollama, model catalog, and monitoring.
+- General end-to-end integration of Agent Runtime, Ollama, model catalog, and monitoring beyond the explicitly wired reference example.
 - Resource-aware model selection and workload scheduling.
 - Agent-to-agent coordination and task planning.
 - Persistent memory and context management.
@@ -401,6 +401,6 @@ See the [LICENSE](LICENSE) file for the complete license text.
 
 MELTYMON AI OS is being developed as an independent open-source project.
 
-The current implementation includes the core infrastructure, local Ollama integration, hardware monitoring, health evaluation, diagnostics, Agent Runtime, Execution Layer, and initial orchestration. The next focus is integration and stabilization; persistent memory, enforced security, and a management interface remain future work.
+The current implementation includes the core infrastructure, local Ollama integration, hardware monitoring, health evaluation, diagnostics, Agent Runtime, Execution Layer, initial orchestration, and a tested Agent-to-Ollama reference example. The next focus is broader integration and stabilization; automatic model selection, resource-aware scheduling, persistent memory, enforced security, and a management interface remain future work.
 
 The goal is to build this step by step, with a strong emphasis on modularity, transparency, reliability, and long-term maintainability.
