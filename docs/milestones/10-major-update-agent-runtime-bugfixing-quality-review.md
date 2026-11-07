@@ -153,7 +153,7 @@ The milestone establishes initial foundations, not a completed AI agent platform
 
 The following capabilities remain incomplete or planned:
 
-- Complete end-to-end integration between Agent Runtime, Ollama backend, Model Catalog, Execution Layer, and MonitoringService
+- General end-to-end integration between Agent Runtime, Ollama backend, Model Catalog, Execution Layer, and MonitoringService (a separately tested, explicitly wired Agent-to-Ollama reference example is available)
 - Automatic hardware-aware model selection
 - Resource-aware scheduling
 - Persistent agent memory
