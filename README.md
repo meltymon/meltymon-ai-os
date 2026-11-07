@@ -100,6 +100,16 @@ The backend is designed to communicate with a locally running Ollama service.
 
 The project uses a modular Python package structure.
 
+### Architecture at a glance
+
+The diagrams below provide a visual overview of the documented implementation. They distinguish implemented components from planned capabilities.
+
+![MELTYMON AI OS system architecture](docs/architecture/system-architecture.svg)
+
+- [Monitoring pipeline](docs/architecture/monitoring-pipeline.svg)
+- [Agent execution flow](docs/architecture/agent-execution-flow.svg)
+- [Architecture visuals and accuracy notes](docs/architecture/README.md)
+
 ```text
 src/meltymon_ai_os/
 ├── agents/
