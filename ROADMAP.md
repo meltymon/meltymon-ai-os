@@ -37,7 +37,7 @@ The project prioritizes transparency, modularity, reliability, and user control.
 | Automated testing | Expanded suite and automated review workflow implemented; ongoing |
 | Agent architecture | Initial implementation |
 | Execution layer | Initial implementation |
-| Agent orchestration | Initial implementation; integration work remains |
+| Agent orchestration | Initial implementation; tested reference path available; broader integration remains |
 | Persistent memory | Planned |
 | Security and auditing | Planned |
 | User interface | Planned |
@@ -196,6 +196,7 @@ The project prioritizes transparency, modularity, reliability, and user control.
 - [x] Agent factory validation and lifecycle-state validation
 - [x] Asynchronous orchestrator dispatch
 - [x] Execution manager for batches of agent contexts
+- [x] Explicit Agent-to-Ollama reference example with deterministic integration tests
 - [x] Configurable maximum concurrency
 - [x] Continue-on-error and fail-fast policies
 - [x] Batch timeout and cooperative cancellation handling
@@ -314,6 +315,6 @@ Detailed technical milestones and architecture decisions will be documented sepa
 
 MELTYMON AI OS is under active development.
 
-The current development focus is the stabilization and integration of the existing core infrastructure, AI backend, hardware monitoring, Agent Runtime, Execution Layer, and initial orchestration foundations.
+The current implementation includes an explicitly wired, tested Agent-to-Ollama reference path. The current development focus is broader integration and stabilization across the core infrastructure, AI backend, hardware monitoring, Agent Runtime, Execution Layer, and orchestration foundations.
 
-Persistent memory, security enforcement, resource-aware model selection, complete end-to-end integration, and user interfaces remain future development areas.
+Automatic model selection, resource-aware scheduling, monitoring-driven orchestration, persistent memory, security enforcement, general end-to-end integration, and user interfaces remain future development areas.
