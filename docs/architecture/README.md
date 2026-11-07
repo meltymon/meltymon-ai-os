@@ -24,4 +24,4 @@ Shows the current context-to-result execution path, including the injected backe
 
 ## Accuracy notes
 
-These are explanatory architecture diagrams, not deployment diagrams. They represent the documented implementation state at the time they were added. In particular, the management interface, persistent memory, platform-wide authorization, and durable audit capabilities are not represented as completed functionality.
+These are explanatory architecture diagrams, not deployment diagrams. The agent execution diagram includes the explicitly wired backend-injection reference path; it does not imply automatic backend construction or platform-wide integration. The system diagram is conceptual and should be read together with the architecture document for implementation boundaries. The management interface, persistent memory, platform-wide authorization, and durable audit capabilities are not represented as completed functionality.
