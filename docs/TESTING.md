@@ -76,12 +76,13 @@ The current test suite is organized by subsystem.
 | `test_execution_report.py` | Execution records and aggregate reports |
 | `test_orchestrator.py` | Agent dispatch and result validation |
 | `test_orchestrator_registry.py` | Factory registration and agent creation |
+| `test_agent_to_ollama_example.py` | Explicit Agent-to-Ollama reference path and failure handling |
 | `test_agent_package.py` | Agent package public exports |
 | `test_execution_package.py` | Execution package public exports |
 | `test_orchestrator_package.py` | Orchestrator package public exports |
 | `test_review.py` | Automated review workflow behavior |
 
-The test suite may be extended as new modules and capabilities are introduced. The current suite includes tests for the Agent Runtime, Execution Layer, Orchestrator, and review workflow introduced during Milestone 10.
+The test suite may be extended as new modules and capabilities are introduced. The current suite includes tests for the Agent Runtime, Execution Layer, Orchestrator, the explicitly wired Agent-to-Ollama reference path, and the review workflow introduced during and after Milestone 10.
 
 ---
 
