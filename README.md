@@ -74,6 +74,10 @@ GPU monitoring uses backend interfaces. The Intel implementation is currently av
 
 Not every telemetry field is available on every GPU or driver.
 
+![MELTYMON AI OS monitoring pipeline](docs/architecture/monitoring-pipeline.svg)
+
+See the [monitoring pipeline diagram](docs/architecture/monitoring-pipeline.svg) for the complete collection, health evaluation, and diagnostics flow.
+
 ### Ollama Integration
 
 MELTYMON AI OS provides an asynchronous backend for Ollama.
@@ -186,27 +190,9 @@ The monitoring service combines collected system information with health assessm
 
 ### Agent Execution Flow
 
-```text
-AgentContext
-     │
-     ▼
-ExecutionManager ── ExecutionPolicy
-     │
-     ▼
-Orchestrator
-     │
-     ▼
-AgentRegistry ── Factory
-     │
-     ▼
-AgentBase ── Lifecycle / Capabilities
-     │
-     ▼
-AgentResult
-     │
-     ▼
-ExecutionRecord / ExecutionReport
-```
+![MELTYMON AI OS agent execution flow](docs/architecture/agent-execution-flow.svg)
+
+The diagram illustrates the current execution path from request context through policy-controlled dispatch and agent execution to a structured result and execution report.
 
 This is an initial execution foundation. Agent execution is not yet automatically connected to Ollama model selection, hardware-aware scheduling, monitoring feedback, persistent memory, or a platform-wide authorization service.
 
