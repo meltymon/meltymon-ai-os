@@ -471,7 +471,7 @@ The execution layer introduces an execution manager, policies, structured report
 
 ### Orchestration
 
-The orchestration foundation includes an orchestration engine, an agent registry, orchestration-specific exceptions, and factory-based agent creation. The registry stores factories rather than persistent running instances. Complete end-to-end integration across agents, model selection, execution, monitoring, and recovery remains future work.
+The orchestration foundation includes an orchestration engine, an agent registry, orchestration-specific exceptions, and factory-based agent creation. The registry stores factories rather than persistent running instances. A separately implemented and tested reference example explicitly injects an Ollama backend into an agent and executes it through the orchestration and execution layers. Generalized integration across automatic model selection, monitoring, and recovery remains future work.
 
 ### Stabilization and regression coverage
 
@@ -623,7 +623,7 @@ The following limitations are important to understand:
 - NVIDIA and AMD GPU monitoring backends are not yet implemented.
 - Available hardware telemetry depends on the device, driver, and operating system interfaces.
 - Health evaluation and diagnostics provide an initial rule-based foundation.
-- Agent Runtime, Execution Layer, and Orchestration have initial implementations; complete end-to-end integration remains future work.
+- Agent Runtime, Execution Layer, and Orchestration have initial implementations; a tested Agent-to-Ollama reference path exists, while general end-to-end platform integration remains future work.
 - Persistent memory and security enforcement are planned areas of development.
 - A complete management interface does not yet exist.
 
@@ -677,6 +677,6 @@ The current implementation provides the following functional foundations:
 - Bounded asynchronous batch execution with concurrency, timeout, failure, and cooperative-cancellation handling.
 - Initial agent orchestration through a factory-based registry and dispatch engine.
 
-These components are not yet connected into a complete end-to-end autonomous-agent workflow. In particular, model invocation from agents, resource-aware scheduling, persistent memory, enforced authorization and approvals, durable audit logging, and a complete management interface remain future work.
+These components are not yet connected into a complete end-to-end autonomous-agent workflow. A tested example demonstrates explicit model invocation from an agent through an injected Ollama backend; automatic model selection, resource-aware scheduling, monitoring feedback, persistent memory, enforced authorization and approvals, durable audit logging, and a complete management interface remain future work.
 
 The long-term objective is to build on these foundations to create a reliable, hardware-aware, local-first AI orchestration platform.
