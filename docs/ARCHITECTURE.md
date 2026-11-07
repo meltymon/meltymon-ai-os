@@ -448,4 +448,4 @@ Planned capabilities must remain labeled as planned until implementation and tes
 
 ---
 
-**Architecture status:** This document describes the repository implementation at the Milestone 10 development stage, including the explicit agent-to-Ollama reference path. It is intended to be updated alongside code changes; planned functionality must remain clearly labeled until it is implemented and tested.
+**Architecture status:** This document describes the repository state after Milestone 10, including the explicitly wired and tested agent-to-Ollama reference path. It is intended to be updated alongside code changes; planned functionality must remain clearly labeled until it is implemented and tested.
